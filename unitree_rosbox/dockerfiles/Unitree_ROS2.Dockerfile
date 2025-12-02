@@ -1,6 +1,6 @@
-FROM docker.io/osrf/ros:humble-desktop-full AS Unitree_ROS2
+FROM docker.io/osrf/ros:humble-desktop-full AS uros2
 
-ENV DEBIAN_FRONTEND=noninteractive
+ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	git \
@@ -37,4 +37,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	ros-humble-rosidl-generator-dds-idl \
 	libyaml-cpp-dev
 
+# unitree_ros2 install
+WORKDIR /setup
+
+RUN git clone https://github.com/unitreerobotics/unitree_ros2
 	
+WORKDIR /setup/unitree_ros2/cyclonedds_ws/src
+RUN git clone https://github.com/ros2/rmw_cyclonedds -b humble \
+	&& git clone https://github.com/eclipse-cyclonedds/cyclonedds -b releases/0.10.x
+
+WORKDIR /setup/unitree_ros2/cyclonedds_ws
+RUN colcon build --packages-select cyclonedds
+RUN set -a && . /opt/ros/humble/setup.sh && colcon build
+
+RUN mkdir /opt/unitree_ros2
+RUN cp -r /setup/unitree_ros2/cyclonedds_ws/src /setup/unitree_ros2/cyclonedds_ws/install /opt/unitree_ros2/
