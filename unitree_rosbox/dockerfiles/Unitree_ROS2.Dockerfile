@@ -13,14 +13,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 #dependencies
 RUN apt-get update && apt-get install -y \
-cmake \
-g++ \
-build-essential \
-libyaml-cpp-dev \
-libeigen3-dev \
-libboost-all-dev \
-libspdlog-dev \
-libfmt-dev 
+	cmake \
+	g++ \
+	build-essential \
+	libyaml-cpp-dev \
+	libeigen3-dev \
+	libboost-all-dev \
+	libspdlog-dev \
+	libfmt-dev 
 
 
 WORKDIR /setup
@@ -28,8 +28,8 @@ RUN git clone https://github.com/unitreerobotics/unitree_sdk2
 
 WORKDIR unitree_sdk2/build
 
-RUN cmake .. -DCMAKE_INSTALL_PREFIX=/opt/unitree_robotics
-RUN sudo make install
+RUN cmake .. -DCMAKE_INSTALL_PREFIX=/opt/unitree_robotics \
+	&& sudo make install
 
 # unitree_ros2 dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
