@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /setup
 RUN git clone https://github.com/unitreerobotics/unitree_sdk2
 
-WORKDIR unitree_sdk2/build
+WORKDIR /setup/unitree_sdk2/build
 
 RUN cmake .. -DCMAKE_INSTALL_PREFIX=/opt/unitree_robotics \
 	&& sudo make install
