@@ -1,0 +1,17 @@
+source ~/.bashrc
+
+# Remove potentially loaded ros distributions from PATH
+export PATH=$(sed 's,/opt/ros[^:]\+\(:\|$\),,g' <<< "$PATH")
+export PYTHONPATH=$(sed 's,/opt/ros[^:]\+\(:\|$\),,g' <<< "$PYTHONPATH")
+export LD_LIBRARY_PATH=$(sed 's,/opt/ros[^:]\+\(:\|$\),,g' <<< "$LD_LIBRARY_PATH")
+
+unset ROS_DISTRO
+unset ROS_VERSION
+unset ROS_PYTHON_VERSION
+unset ROS_LOCALHOST_ONLY
+unset AMENT_PREFIX_PATH
+
+source /opt/ros/noetic/setup.bash
+export DISABLE_ROS1_EOL_WARNINGS=true
+
+PS1='\[\e[38;5;40m\]ROSBox\[\e[0m\]:\[\e[38;5;21m\]\w\[\e[0m\] \$ '
