@@ -2,6 +2,8 @@ version: '2'
 
 
 services:
-  unitree_ros2:
-    build: .
-    image: kilab09/uros2:v1
+  unitree_ros2_test:
+    build:
+      context: .
+      dockerfile: Unitree_ROS2.Dockerfile
+    image: kilab09/unitree-ros2:v1
