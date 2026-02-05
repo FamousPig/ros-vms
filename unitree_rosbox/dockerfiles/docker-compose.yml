@@ -4,4 +4,4 @@ version: '2'
 services:
   unitree_ros2:
     build: .
-    image: kilab09/unitree_ros2:v1
+    image: kilab09/uros2:v1
