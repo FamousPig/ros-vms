@@ -52,3 +52,4 @@ RUN set -a && . /opt/ros/humble/setup.sh && colcon build
 
 RUN mkdir /opt/unitree_ros2
 RUN cp -r /setup/unitree_ros2/cyclonedds_ws/src /setup/unitree_ros2/cyclonedds_ws/install /opt/unitree_ros2/
+ADD --chmod=755 res/setup.sh /opt/unitree_ros2
