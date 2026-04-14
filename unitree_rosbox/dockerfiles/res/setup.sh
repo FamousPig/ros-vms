@@ -1,6 +1,6 @@
 #!/bin/env bash
 source /opt/ros/humble/setup.bash
-source /opt/unitree_ros2/install/setup.bash
+source /opt/unitree_ros2/cyclonedds_ws/install/setup.bash
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 #TODO query network interface on setup?
