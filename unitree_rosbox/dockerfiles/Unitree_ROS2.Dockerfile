@@ -3,8 +3,6 @@ FROM docker.io/osrf/ros:humble-desktop-full AS prepare
 # The image automatically sets up the ros environment. Unfortunately this messes with the compilation of unitree_ros2
 ENTRYPOINT "/bin/bash"
 
-
-
 FROM prepare as build
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -57,6 +55,8 @@ RUN set -a && . /opt/ros/humble/setup.sh && colcon build
 FROM build as run 
 # add some utilites
 
+ARG NETWORK_INTERFACE="enp0s31f6"
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	git \
 	curl \
@@ -69,6 +69,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 ADD --chmod=755 res/setup.sh /opt/unitree_ros2
 
+RUN sed -i -e "s/--INTERFACE--/${NETWORK_INTERFACE}/g" /opt/unitree_ros2/setup.sh
+
 # ENTRYPOINT "/opt/unitree_ros2/setup.sh"
 
+RUN echo "source /opt/unitree_ros2/setup.sh" >> ~/.bashrc
 CMD ["/bin/bash"]
