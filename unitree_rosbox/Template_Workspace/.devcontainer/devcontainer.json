@@ -37,7 +37,7 @@
  //   "gpu": {"optional"}
  //},
   "workspaceFolder": "/home/rosdev/ros2_ws",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/home/rosdev/ros2_ws/src,type=bind",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/rosdev/ros2_ws,type=bind",
    "containerEnv": {
         "DISPLAY": "unix:0"
     },
