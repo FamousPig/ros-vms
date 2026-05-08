@@ -1,0 +1,12 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Simulator (Mujoco)",
+            "type": "process",
+            "command": "/opt/unitree_mujoco/simulate/build/unitree_mujoco",
+            "args": ["-rgo2", "-sscene_terrain.xml"],
+            "problemMatcher": []
+        }
+    ]
+}
