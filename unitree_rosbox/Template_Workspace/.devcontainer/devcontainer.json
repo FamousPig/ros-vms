@@ -33,11 +33,21 @@
           }
       }
   },
+ // "hostRequirements": {
+ //   "gpu": {"optional"}
+ //},
   "workspaceFolder": "/home/rosdev/ros2_ws",
   "workspaceMount": "source=${localWorkspaceFolder},target=/home/rosdev/ros2_ws/src,type=bind",
-  "mounts": [],
+   "containerEnv": {
+        "DISPLAY": "unix:0"
+    },
+    "mounts": [
+        "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached"
+      ],
   "runArgs": [
-      "--net=host"
+      "--net=host",
+      "--runtime=nvidia",
+      "--gpus=all"
 ],
 "features": {
 	//"ghcr.io/devcontainer-config/features/dot-config:4": {}

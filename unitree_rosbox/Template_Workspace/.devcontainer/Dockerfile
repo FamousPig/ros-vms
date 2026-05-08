@@ -3,7 +3,7 @@ FROM docker.io/osrf/ros:humble-desktop-full AS prepare
 # The image automatically sets up the ros environment. Unfortunately this messes with the compilation of unitree_ros2
 ENTRYPOINT "/bin/bash"
 
-FROM prepare as build
+FROM prepare AS build
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -27,7 +27,7 @@ RUN git clone https://github.com/unitreerobotics/unitree_sdk2
 WORKDIR /setup/unitree_sdk2/build
 
 RUN cmake .. -DCMAKE_INSTALL_PREFIX=/opt/unitree_robotics \
-	&& sudo make install
+	&& sudo make -j$(nproc) install
 
 # unitree_ros2 dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -52,7 +52,28 @@ WORKDIR /opt/unitree_ros2
 RUN set -a && . /opt/ros/humble/setup.sh && colcon build
 
 
-FROM build as run 
+#unitree_mujoco setup
+
+WORKDIR /opt
+
+RUN apt install -y software-properties-common wget
+RUN add-apt-repository -y universe
+RUN apt install -y libyaml-cpp-dev libspdlog-dev libboost-all-dev libglfw3-dev
+
+RUN git clone https://github.com/unitreerobotics/unitree_mujoco
+
+RUN wget https://github.com/google-deepmind/mujoco/releases/download/3.8.0/mujoco-3.8.0-linux-x86_64.tar.gz
+RUN mkdir mujoco
+RUN tar -xf mujoco-3.8.0-linux-x86_64.tar.gz -C mujoco
+RUN rm mujoco-3.8.0-linux-x86_64.tar.gz 
+
+WORKDIR /opt/unitree_mujoco/simulate
+RUN ln -s /opt/mujoco/mujoco-3.8.0 mujoco
+WORKDIR /opt/unitree_mujoco/simulate/build
+RUN cmake ..
+RUN make -j$(nproc)
+
+FROM build AS run 
 
 ARG NETWORK_INTERFACE="enp0s31f6"
 
@@ -90,6 +111,7 @@ RUN apt update -q \
     software-properties-common \
     python3-pip \
     xauth \
+	mesa-utils \
     && apt clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
