@@ -1,8 +1,8 @@
 {
-  "name": "Unitree-ROS2 development environment",
+  "name": "Unitree-ROS2 development environment (AMD/Intel)",
   "remoteUser": "rosdev",
   "build": {
-      "dockerfile": "Dockerfile",
+      "dockerfile": "../Dockerfile",
       "args": {
           "USERNAME": "rosdev",
           "GID": "1000",
@@ -39,17 +39,16 @@
   "workspaceFolder": "/home/rosdev/ros2_ws",
   "workspaceMount": "source=${localWorkspaceFolder},target=/home/rosdev/ros2_ws,type=bind",
    "containerEnv": {
-        "DISPLAY": "unix:0"
+        "DISPLAY": ":1"
     },
     "mounts": [
         "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached"
       ],
   "runArgs": [
       "--net=host",
-      "--runtime=nvidia",
-      "--gpus=all"
+      "--device=/dev/dri"
 ],
 "features": {
 	//"ghcr.io/devcontainer-config/features/dot-config:4": {}
-}
+    }
 }
