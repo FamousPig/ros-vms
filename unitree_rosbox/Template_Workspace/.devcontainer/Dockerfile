@@ -7,7 +7,7 @@ FROM prepare AS build
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-# Install unitree_sdk2
+#Install unitree_sdk2
 
 #dependencies
 RUN apt-get update && apt-get install -y \
@@ -29,13 +29,14 @@ WORKDIR /setup/unitree_sdk2/build
 RUN cmake .. -DCMAKE_INSTALL_PREFIX=/opt/unitree_robotics \
 	&& sudo make -j$(nproc) install
 
-# unitree_ros2 dependencies
+#Install unitree_ros2
+
+#dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	ros-humble-rmw-cyclonedds-cpp \
 	ros-humble-rosidl-generator-dds-idl \
 	libyaml-cpp-dev
 
-# unitree_ros2 install
 WORKDIR /opt
 
 RUN git clone https://github.com/unitreerobotics/unitree_ros2
@@ -52,7 +53,7 @@ WORKDIR /opt/unitree_ros2
 RUN set -a && . /opt/ros/humble/setup.sh && colcon build
 
 
-#unitree_mujoco setup
+#Install unitree_mujoco
 
 WORKDIR /opt
 
@@ -77,7 +78,7 @@ FROM build AS run
 
 ARG NETWORK_INTERFACE="enp0s31f6"
 
-#add some utilities
+#Add some utilities
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	git \
 	curl \
@@ -92,11 +93,9 @@ ADD --chmod=755 res/setup.sh /opt/unitree_ros2
 
 RUN sed -i -e "s/--INTERFACE--/${NETWORK_INTERFACE}/g" /opt/unitree_ros2/setup.sh
 
-# ENTRYPOINT "/opt/unitree_ros2/setup.sh"
 
 RUN echo "source /opt/unitree_ros2/setup.sh" >> ~/.bashrc
 
-# -- DEVCONTAINER STUFF --
 
 FROM run AS devcontainer
 
