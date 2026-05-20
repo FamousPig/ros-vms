@@ -12,16 +12,12 @@
   "customizations": {
       "vscode": {
           "extensions": [
-            // TODO clean this up
-              "ms-python.python",
-              "charliermarsh.ruff",
-              "ms-vscode.cpptools-extension-pack",
-              "ms-iot.vscode-ros",
+              "ms-vscode.cpptools-extension-pack", 
+              "ranch-hand-robotics.rde-ros-2",
               "smilerobotics.urdf",
               "redhat.vscode-xml",
               "tamasfe.even-better-toml",
-              "timonwong.shellcheck",
-              "yzhang.markdown-all-in-one",
+              "yzhang.markdown-all-in-one"
           ],
           "settings": {
               "files.associations": {
