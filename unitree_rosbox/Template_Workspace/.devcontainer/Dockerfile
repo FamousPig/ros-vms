@@ -60,12 +60,12 @@ RUN apt install -y software-properties-common wget
 RUN add-apt-repository -y universe
 RUN apt install -y libyaml-cpp-dev libspdlog-dev libboost-all-dev libglfw3-dev
 
-RUN git clone https://github.com/unitreerobotics/unitree_mujoco
-
 RUN wget https://github.com/google-deepmind/mujoco/releases/download/3.8.0/mujoco-3.8.0-linux-x86_64.tar.gz
 RUN mkdir mujoco
 RUN tar -xf mujoco-3.8.0-linux-x86_64.tar.gz -C mujoco
 RUN rm mujoco-3.8.0-linux-x86_64.tar.gz 
+
+RUN git clone https://github.com/unitreerobotics/unitree_mujoco
 
 WORKDIR /opt/unitree_mujoco/simulate
 RUN ln -s /opt/mujoco/mujoco-3.8.0 mujoco
@@ -112,13 +112,20 @@ RUN apt update -q \
     python3-pip \
     xauth \
 	mesa-utils \
+	gdb \
     && apt clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+
 
 # Create and switch to user
 RUN groupadd -g $GID $USERNAME \
     && useradd -lm -u $UID -g $USERNAME -s /bin/bash $USERNAME \
     && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+RUN cp -r /opt/unitree_mujoco /home/$USERNAME/unitree_mujoco
+RUN chown -R $USERNAME:$USERNAME /home/$USERNAME/unitree_mujoco
+
 USER $USERNAME
 
 # Create workspace so that user own this directory
@@ -128,5 +135,7 @@ WORKDIR /home/$USERNAME/ros2_ws
 # Copy configuration files
 # RUN echo 'source /opt/ros/'$ROS_DISTRO'/setup.bash' >> /home/$USERNAME/.bashrc \
 #   && echo 'source /home/'$USERNAME'/ros2_ws/install/setup.bash' >> /home/$USERNAME/.bashrc
+
+RUN echo 'source $HOME/ros2_ws/setup.sh' >> /home/$USERNAME/.bashrc
 
 CMD ["bash"]
