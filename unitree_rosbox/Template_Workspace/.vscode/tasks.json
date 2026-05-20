@@ -4,9 +4,37 @@
         {
             "label": "Simulator (Mujoco)",
             "type": "process",
-            "command": "/opt/unitree_mujoco/simulate/build/unitree_mujoco",
-            "args": ["-rgo2", "-sscene_terrain.xml"],
+            "command": "/home/rosdev/unitree_mujoco/simulate/build/unitree_mujoco",
+            "args": [
+                "-rg1",
+                "-sscene_29dof.xml"
+            ],
             "problemMatcher": []
+        },
+        {
+            "label": "glxgears",
+            "type": "process",
+            "command": "glxgears"
+        },
+        {
+            "label": "colcon: build (debug)",
+            "type": "shell",
+            "command": [
+                "source setup_local.sh;",
+                "colcon build --paths example/src",
+                "--symlink-install",
+                "--event-handlers console_cohesion+",
+                "--base-paths workspace-path",
+                "--cmake-args -DCMAKE_BUILD_TYPE=Debug"
+            ]
+        },
+        {
+            "label": "colcon: clean",
+            "type": "shell",
+            "command": [
+                "cd project-workspace;",
+                "rm -rf build/ install/ log/;"
+            ]
         }
     ]
 }

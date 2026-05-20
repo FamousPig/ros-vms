@@ -1,0 +1,59 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Simulator",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/example/src/install/unitree_ros2_example/bin/g1_ankle_swing_example",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${fileDirname}",
+      "environment": [ {"name": "ROS_DOMAIN_ID","value": "1"},
+                       {"name": "CYCLONEDDS_URI", "value": "<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"lo\" priority=\"default\" multicast=\"default\" /></Interfaces></General></Domain></CycloneDDS>"}
+],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "preLaunchTask": "colcon: build (debug)",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
+      "name": "Real",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/example/src/install/unitree_ros2_example/bin/g1_ankle_swing_example",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${fileDirname}",
+      "environment": [ {"name": "ROS_DOMAIN_ID","value": "0"},
+                        {"name": "CYCLONEDDS_URI", "value": "<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"enp0s31f6\" priority=\"default\" multicast=\"default\" /></Interfaces></General></Domain></CycloneDDS>"}
+                      ],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "preLaunchTask": "colcon: build (debug)",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    }
+  ]
+}
