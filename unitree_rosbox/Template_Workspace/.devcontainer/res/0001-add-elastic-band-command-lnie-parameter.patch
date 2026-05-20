@@ -1,0 +1,24 @@
+From 517e9b6f17ee02af5feaf843093200112e6f4c6f Mon Sep 17 00:00:00 2001
+From: leon <leon.geb@ler.de>
+Date: Wed, 20 May 2026 12:31:23 +0000
+Subject: [PATCH] add elastic band command line parameter
+
+---
+ simulate/src/param.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/simulate/src/param.h b/simulate/src/param.h
+index 76d1137..6ce4a25 100644
+--- a/simulate/src/param.h
++++ b/simulate/src/param.h
+@@ -63,6 +63,7 @@ inline po::variables_map helper(int argc, char** argv)
+         ("network,n", po::value<std::string>(&config.interface), "DDS network interface; -n eth0")
+         ("robot,r", po::value<std::string>(&config.robot), "Robot type; -r go2")
+         ("scene,s", po::value<std::filesystem::path>(&config.robot_scene), "Robot scene file; -s scene_terrain.xml")
++        ("elastic-band,e", po::value<int>(&config.enable_elastic_band), "Enable elastic band; -e 1")
+     ;
+ 
+     po::variables_map vm;
+-- 
+2.34.1
+

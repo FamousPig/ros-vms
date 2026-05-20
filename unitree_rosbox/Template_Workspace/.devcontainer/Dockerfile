@@ -68,7 +68,11 @@ RUN rm mujoco-3.8.0-linux-x86_64.tar.gz
 
 RUN git clone https://github.com/unitreerobotics/unitree_mujoco
 
+ADD res/0001-add-elastic-band-command-lnie-parameter.patch elasticband.patch
 WORKDIR /opt/unitree_mujoco/simulate
+RUN git apply /opt/elasticband.patch
+RUN rm /opt/elasticband.patch
+
 RUN ln -s /opt/mujoco/mujoco-3.8.0 mujoco
 WORKDIR /opt/unitree_mujoco/simulate/build
 RUN cmake ..
