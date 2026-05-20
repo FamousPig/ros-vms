@@ -12,7 +12,6 @@
   "customizations": {
       "vscode": {
           "extensions": [
-            // TODO clean this up
               "ms-vscode.cpptools-extension-pack", 
               "ranch-hand-robotics.rde-ros-2",
               "smilerobotics.urdf",
