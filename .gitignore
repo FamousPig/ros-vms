@@ -1,1 +1,5 @@
 unitree_rosbox/gazebo_resources
+unitree_rosbox/Template_Workspace/build
+unitree_rosbox/Template_Workspace/install
+unitree_rosbox/Template_Workspace/log
+unitree_rosbox/Template_Workspace/example

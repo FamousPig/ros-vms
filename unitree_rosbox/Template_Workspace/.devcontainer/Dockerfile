@@ -85,6 +85,7 @@ WORKDIR /opt/unitree_mujoco/simulate/build
 RUN cmake ..
 RUN make -j$(nproc)
 
+
 FROM build AS run 
 
 ARG NETWORK_INTERFACE="enp0s31f6"
@@ -112,7 +113,6 @@ ARG GID=$UID
 
 # Install some dependencies packages
 RUN apt update -q \
-    && apt upgrade -q -y \
     && apt install -y --no-install-recommends \
     software-properties-common \
     python3-pip \
@@ -137,10 +137,6 @@ USER $USERNAME
 # Create workspace so that user own this directory
 RUN mkdir -p /home/$USERNAME/ros2_ws/src
 WORKDIR /home/$USERNAME/ros2_ws
-
-# Copy configuration files
-# RUN echo 'source /opt/ros/'$ROS_DISTRO'/setup.bash' >> /home/$USERNAME/.bashrc \
-#   && echo 'source /home/'$USERNAME'/ros2_ws/install/setup.bash' >> /home/$USERNAME/.bashrc
 
 RUN echo 'source $HOME/ros2_ws/setup.sh' >> /home/$USERNAME/.bashrc
 

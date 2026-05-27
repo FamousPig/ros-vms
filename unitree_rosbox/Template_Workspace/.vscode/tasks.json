@@ -7,7 +7,8 @@
             "command": "/home/rosdev/unitree_mujoco/simulate/build/unitree_mujoco",
             "args": [
                 "-rg1",
-                "-sscene_29dof.xml"
+                "-sscene_29dof.xml",
+                "-e1"
             ],
             "problemMatcher": []
         },
