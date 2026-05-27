@@ -9,7 +9,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # Install unitree_sdk2
 
-# dependencies
+# Dependencies
 RUN apt-get update && apt-get install -y \
 	cmake \
 	g++ \
@@ -23,15 +23,18 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /setup
 RUN git clone https://github.com/unitreerobotics/unitree_sdk2
+WORKDIR /setup/unitree_sdk2
+
+# Pin to latest commit as of 2026-05-27
+RUN git reset --hard 7a9ceca8e58c8b75fcf74a092826c138667ad698 
 
 WORKDIR /setup/unitree_sdk2/build
-
 RUN cmake .. -DCMAKE_INSTALL_PREFIX=/opt/unitree_robotics \
 	&& sudo make -j$(nproc) install
 
-#Install unitree_ros2
+# Install unitree_ros2
 
-#dependencies
+# Dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
 	ros-humble-rmw-cyclonedds-cpp \
 	ros-humble-rosidl-generator-dds-idl \
@@ -42,6 +45,8 @@ WORKDIR /opt
 RUN git clone https://github.com/unitreerobotics/unitree_ros2
 	
 WORKDIR /opt/unitree_ros2/cyclonedds_ws/src
+# Pin to latest commit as of 2026-05-27
+RUN git reset --hard 5204e6e098ee53f4bd929bd77eb1d387cd0fa842
 RUN git clone https://github.com/ros2/rmw_cyclonedds -b humble \
 	&& git clone https://github.com/eclipse-cyclonedds/cyclonedds -b releases/0.10.x
 
@@ -70,6 +75,8 @@ RUN git clone https://github.com/unitreerobotics/unitree_mujoco
 
 ADD res/0001-add-elastic-band-command-line-parameter.patch elasticband.patch
 WORKDIR /opt/unitree_mujoco/simulate
+# Pin to latest commit as of 2026-05-27
+RUN git reset --hard c598f103acb87a5fd3de7c9037f4dab6aa7f232b
 RUN git apply /opt/elasticband.patch
 RUN rm /opt/elasticband.patch
 
