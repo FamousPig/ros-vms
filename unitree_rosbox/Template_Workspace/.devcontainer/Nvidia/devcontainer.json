@@ -1,6 +1,7 @@
 {
     "name": "Unitree-ROS2 development environment (NVIDIA)",
     "remoteUser": "rosdev",
+    "initializeCommand": ".devcontainer/cache_repos.bash",
     "build": {
         "dockerfile": "../Dockerfile",
         "args": {
