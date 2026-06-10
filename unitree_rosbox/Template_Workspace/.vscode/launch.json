@@ -32,7 +32,7 @@
       "name": "Real",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/example/src/install/unitree_ros2_example/bin/g1_loco_client_example",
+      "program": "${workspaceFolder}/example/src/install/unitree_ros2_example/bin/g1_low_level_example",
       "args": ["shake_hand"],
       "stopAtEntry": false,
       "cwd": "${fileDirname}",
