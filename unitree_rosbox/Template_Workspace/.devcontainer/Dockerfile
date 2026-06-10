@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y \
 
 
 WORKDIR /setup
-RUN git clone https://github.com/unitreerobotics/unitree_sdk2
+COPY res/repos/unitree_sdk2 /setup/unitree_sdk2
 WORKDIR /setup/unitree_sdk2
 
 # Pin to latest commit as of 2026-05-27
@@ -42,13 +42,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /opt
 
-RUN git clone https://github.com/unitreerobotics/unitree_ros2
+COPY res/repos/unitree_ros2 /opt/unitree_ros2
 	
 WORKDIR /opt/unitree_ros2/cyclonedds_ws/src
 # Pin to latest commit as of 2026-05-27
 # RUN git checkout 5204e6e098ee53f4bd929bd77eb1d387cd0fa842
-RUN git clone https://github.com/ros2/rmw_cyclonedds -b humble \
-	&& git clone https://github.com/eclipse-cyclonedds/cyclonedds -b releases/0.10.x
 
 WORKDIR /opt/unitree_ros2/cyclonedds_ws
 RUN colcon build --packages-select cyclonedds
@@ -62,16 +60,16 @@ RUN set -a && . /opt/ros/humble/setup.sh && colcon build
 
 WORKDIR /opt
 
-RUN apt install -y software-properties-common wget
+RUN apt install -y software-properties-common
 RUN add-apt-repository -y universe
 RUN apt install -y libyaml-cpp-dev libspdlog-dev libboost-all-dev libglfw3-dev
 
-RUN wget https://github.com/google-deepmind/mujoco/releases/download/3.8.0/mujoco-3.8.0-linux-x86_64.tar.gz
+ADD https://github.com/google-deepmind/mujoco/releases/download/3.8.0/mujoco-3.8.0-linux-x86_64.tar.gz mujoco-3.8.0-linux-x86_64.tar.gz
 RUN mkdir mujoco
 RUN tar -xf mujoco-3.8.0-linux-x86_64.tar.gz -C mujoco
 RUN rm mujoco-3.8.0-linux-x86_64.tar.gz 
 
-RUN git clone https://github.com/unitreerobotics/unitree_mujoco
+COPY res/repos/unitree_mujoco /opt/unitree_mujoco
 
 ADD res/0001-add-elastic-band-command-line-parameter.patch elasticband.patch
 WORKDIR /opt/unitree_mujoco/simulate
