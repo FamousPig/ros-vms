@@ -30,7 +30,7 @@ WORKDIR /setup/unitree_sdk2
 
 WORKDIR /setup/unitree_sdk2/build
 RUN cmake .. -DCMAKE_INSTALL_PREFIX=/opt/unitree_robotics \
-	&& sudo make -j$(nproc) install
+	&& make -j$(nproc) install
 
 # Install unitree_ros2
 
