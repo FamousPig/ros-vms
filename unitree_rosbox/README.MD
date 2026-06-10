@@ -17,7 +17,11 @@
 4. Suche nach  'Dev Containers: Rebuild and Reopen in Container' und wähle es aus # TODO nach lokalisierter Benennung gucken
 5. Warte während die Entwicklungsumgebung eingerichtet wird
 6. Schreibe oder importiere deinen Code # TODO Einrichtung einer main.cpp oder ähnliches?
+
 ## Hardwarebeschleunigung
+
+Zur Unterstüzung der Hardwarebeschleunigung sind nach Grafikkartenhersteller unterschiedliche Startkonfigurationen des Containers gegeben. Wähle beim Start des Containers
+die für das System passende Konfiguration. Die verwendete Grafikkarte lässt sich zum Beispiel unter Ubuntu über 'Einstellungen > Info > Grafik' ermitteln.
 
 https://wiki.ros.org/docker/Tutorials/Hardware%20Acceleration
 
