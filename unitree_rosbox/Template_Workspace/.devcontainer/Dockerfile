@@ -25,9 +25,6 @@ WORKDIR /setup
 COPY res/repos/unitree_sdk2 /setup/unitree_sdk2
 WORKDIR /setup/unitree_sdk2
 
-# Pin to latest commit as of 2026-05-27
-# RUN git checkout 7a9ceca8e58c8b75fcf74a092826c138667ad698 
-
 WORKDIR /setup/unitree_sdk2/build
 RUN cmake .. -DCMAKE_INSTALL_PREFIX=/opt/unitree_robotics \
 	&& make -j$(nproc) install
@@ -45,8 +42,6 @@ WORKDIR /opt
 COPY res/repos/unitree_ros2 /opt/unitree_ros2
 	
 WORKDIR /opt/unitree_ros2/cyclonedds_ws/src
-# Pin to latest commit as of 2026-05-27
-# RUN git checkout 5204e6e098ee53f4bd929bd77eb1d387cd0fa842
 
 WORKDIR /opt/unitree_ros2/cyclonedds_ws
 RUN colcon build --packages-select cyclonedds
@@ -73,8 +68,6 @@ COPY res/repos/unitree_mujoco /opt/unitree_mujoco
 
 ADD res/0001-add-elastic-band-command-line-parameter.patch elasticband.patch
 WORKDIR /opt/unitree_mujoco/simulate
-# Pin to latest commit as of 2026-05-27
-# RUN git checkout c598f103acb87a5fd3de7c9037f4dab6aa7f232b
 RUN git apply /opt/elasticband.patch
 RUN rm /opt/elasticband.patch
 
