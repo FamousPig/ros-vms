@@ -21,11 +21,12 @@
             "label": "colcon: build (debug)",
             "type": "shell",
             "command": [
-                "source setup_local.sh;",
-                "colcon build --paths example/src",
+                "source setup.sh;",
+                "colcon build",
+                "--paths src",
                 "--symlink-install",
                 "--event-handlers console_cohesion+",
-                "--base-paths workspace-path",
+                "--base-paths .",
                 "--cmake-args -DCMAKE_BUILD_TYPE=Debug"
             ]
         },

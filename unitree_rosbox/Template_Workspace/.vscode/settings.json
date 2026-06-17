@@ -14,5 +14,9 @@
         "/opt/unitree_ros2/cyclonedds_ws/install/unitree_api/local/lib/python3.10/dist-packages",
         "/opt/ros/humble/lib/python3.10/site-packages",
         "/opt/ros/humble/local/lib/python3.10/dist-packages"
+    ],
+    "C_Cpp.codeAnalysis.clangTidy.checks.disabled": [
+        "clang-diagnostic-deprecated-declarations",
+        "clang-diagnostic-deprecated-literal-operator"
     ]
 }

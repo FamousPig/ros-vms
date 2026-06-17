@@ -1,11 +1,12 @@
 {
   "version": "0.2.0",
   "configurations": [
+    
     {
       "name": "Simulator",
       "type": "cppdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/example/src/install/unitree_ros2_example/bin/g1_low_level_example",
+      "program": "${workspaceFolder}/build/g1_wave_example/wave",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${fileDirname}",

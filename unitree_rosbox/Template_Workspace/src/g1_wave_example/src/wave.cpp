@@ -1,0 +1,253 @@
+#include "common/motor_crc_hg.h"
+#include "rclcpp/rclcpp.hpp"
+#include "unitree_hg/msg/imu_state.hpp"
+#include "unitree_hg/msg/low_cmd.hpp"
+#include "unitree_hg/msg/low_state.hpp"
+
+using namespace std::chrono_literals;
+
+const auto HG_CMD_TOPIC = "lowcmd";
+const auto HG_IMU_TORSO = "secondary_imu";
+const auto HG_STATE_TOPIC = "lowstate";
+constexpr float PI = 3.14159265358979323846F;
+template <typename T>
+class DataBuffer {
+ public:
+  void SetData(const T &new_data) {
+    std::lock_guard<std::mutex> const lock(mutex_);
+    data_ = std::make_shared<T>(new_data);
+  }
+
+  std::shared_ptr<const T> GetData() {
+    std::lock_guard<std::mutex> const lock(mutex_);
+    return data_ ? data_ : nullptr;
+  }
+
+  void Clear() {
+    std::lock_guard<std::mutex> lock(mutex_);
+    data_ = nullptr;
+  }
+
+ private:
+  std::shared_ptr<T> data_;
+  std::mutex mutex_;
+};
+
+const int G1_NUM_MOTOR = 29;
+struct ImuState {
+  std::array<float, 3> rpy = {};
+  std::array<float, 3> omega = {};
+};
+struct MotorCommand {
+  std::array<float, G1_NUM_MOTOR> q_target = {};
+  std::array<float, G1_NUM_MOTOR> dq_target = {};
+  std::array<float, G1_NUM_MOTOR> kp = {};
+  std::array<float, G1_NUM_MOTOR> kd = {};
+  std::array<float, G1_NUM_MOTOR> tau_ff = {};
+};
+
+struct MotorState {
+  std::array<float, G1_NUM_MOTOR> q = {};
+  std::array<float, G1_NUM_MOTOR> dq = {};
+};
+
+// Stiffness for all G1 Joints
+const std::array<float, G1_NUM_MOTOR> Kp{
+    60, 60, 60, 100, 40, 40,      // legs
+    60, 60, 60, 100, 40, 40,      // legs
+    60, 40, 40,                   // waist
+    40, 40, 40, 40,  40, 40, 40,  // arms
+    40, 40, 40, 40,  40, 40, 40   // arms
+};
+
+// Damping for all G1 Joints
+const std::array<float, G1_NUM_MOTOR> Kd{
+    1, 1, 1, 2, 1, 1,     // legs
+    1, 1, 1, 2, 1, 1,     // legs
+    1, 1, 1,              // waist
+    1, 1, 1, 1, 1, 1, 1,  // arms
+    1, 1, 1, 1, 1, 1, 1   // arms
+};
+
+enum class Mode {
+  PR = 0,  // Series Control for Pitch/Roll Joints
+  AB = 1   // Parallel Control for A/B Joints
+};
+
+enum G1JointIndex {
+  LEFT_HIP_PITCH = 0,
+  LEFT_HIP_ROLL = 1,
+  LEFT_HIP_YAW = 2,
+  LEFT_KNEE = 3,
+  LEFT_ANKLE_PITCH = 4,
+  LEFT_ANKLE_B = 4,
+  LEFT_ANKLE_ROLL = 5,
+  LEFT_ANKLE_A = 5,
+  RIGHT_HIP_PITCH = 6,
+  RIGHT_HIP_ROLL = 7,
+  RIGHT_HIP_YAW = 8,
+  RIGHT_KNEE = 9,
+  RIGHT_ANKLE_PITCH = 10,
+  RIGHT_ANKLE_B = 10,
+  RIGHT_ANKLE_ROLL = 11,
+  RIGHT_ANKLE_A = 11,
+  WAIST_YAW = 12,
+  WAIST_ROLL = 13,   // NOTE INVALID for g1 23dof/29dof with waist locked
+  WAIST_A = 13,      // NOTE INVALID for g1 23dof/29dof with waist locked
+  WAIST_PITCH = 14,  // NOTE INVALID for g1 23dof/29dof with waist locked
+  WAIST_B = 14,      // NOTE INVALID for g1 23dof/29dof with waist locked
+  LEFT_SHOULDER_PITCH = 15,
+  LEFT_SHOULDER_ROLL = 16,
+  LEFT_SHOULDER_YAW = 17,
+  LEFT_ELBOW = 18,
+  LEFT_WRIST_ROLL = 19,
+  LEFT_WRIST_PITCH = 20,  // NOTE INVALID for g1 23dof
+  LEFT_WRIST_YAW = 21,    // NOTE INVALID for g1 23dof
+  RIGHT_SHOULDER_PITCH = 22,
+  RIGHT_SHOULDER_ROLL = 23,
+  RIGHT_SHOULDER_YAW = 24,
+  RIGHT_ELBOW = 25,
+  RIGHT_WRIST_ROLL = 26,
+  RIGHT_WRIST_PITCH = 27,  // NOTE INVALID for g1 23dof
+  RIGHT_WRIST_YAW = 28     // NOTE INVALID for g1 23dof
+};
+
+class G1WaveSender : public rclcpp::Node {
+    public:
+      G1WaveSender(): Node("g1_wave_sender"), mode_machine_(1) {
+        //  subscribe to "/lowstate" topic
+        lowstate_subscriber_ = this->create_subscription<unitree_hg::msg::LowState>(
+            HG_STATE_TOPIC, 10,
+            [this](unitree_hg::msg::LowState::SharedPtr message) {
+                LowStateHandler(message);
+            });
+        imustate_subscriber_ = this->create_subscription<unitree_hg::msg::IMUState>(
+            HG_IMU_TORSO, 20,
+            [this](unitree_hg::msg::IMUState::SharedPtr message) {
+                IMUStateHandler(message);
+            });
+        // the mLowcmdPublisher is set to publish "/lowcmd" topic
+        lowcmd_publisher_ =
+          this->create_publisher<unitree_hg::msg::LowCmd>(HG_CMD_TOPIC, 10);
+        
+        //Run Control() function every 2ms (500 times a second or 500hz)
+        controlTimer = this->create_wall_timer(std::chrono::milliseconds(2),
+          [this] { Control(); });
+        writeTimer = this->create_wall_timer(std::chrono::milliseconds(2),
+          [this] { writeLowCommand(); });
+    }
+
+    private:
+      rclcpp::Subscription<unitree_hg::msg::LowState>::SharedPtr
+        lowstate_subscriber_;  // ROS2 Subscriber
+      rclcpp::Subscription<unitree_hg::msg::IMUState>::SharedPtr
+        imustate_subscriber_;
+      rclcpp::Publisher<unitree_hg::msg::LowCmd>::SharedPtr
+        lowcmd_publisher_;
+
+      Mode mode_pr_{Mode::PR};
+      std::atomic<uint8_t> mode_machine_;
+
+      rclcpp::TimerBase::SharedPtr controlTimer;
+      rclcpp::TimerBase::SharedPtr writeTimer;
+
+      DataBuffer<MotorCommand> motorCmdBuffer;
+      DataBuffer<MotorState> motor_state_buffer_;
+
+      double time = 0;
+
+      void LowStateHandler(unitree_hg::msg::LowState::SharedPtr message) {
+        // Here we could process the current robot state
+        // get motor state
+        MotorState msTmp;
+        for (int i = 0; i < G1_NUM_MOTOR; ++i) {
+          msTmp.q.at(i) = message->motor_state[i].q;
+          msTmp.dq.at(i) = message->motor_state[i].dq;
+          if ((message->motor_state[i].motorstate != 0U) && i <= RIGHT_ANKLE_ROLL) {
+            RCLCPP_INFO(this->get_logger(), "[ERROR] motor %d with code %d", i,
+                        message->motor_state[i].motorstate);
+          }
+        }
+        motor_state_buffer_.SetData(msTmp);
+      }
+
+      void IMUStateHandler(unitree_hg::msg::IMUState::SharedPtr message) {
+         //Here we could process the current momentum/inertia state
+      }
+
+      void Control() {
+        const double deltatime = 0.002; //500hz
+
+        MotorCommand localCmdBuffer;
+        const std::shared_ptr<const MotorState> currentState = motor_state_buffer_.GetData();
+        
+        //reproduce current state before writing change on top
+        for(int i = 0; i < G1_NUM_MOTOR; ++i) {
+          localCmdBuffer.tau_ff.at(i) = 0.0;
+          localCmdBuffer.q_target.at(i) = 0.0;
+          localCmdBuffer.dq_target.at(i) = 0.0;
+          localCmdBuffer.kp.at(i) = Kp[i];
+          localCmdBuffer.kd.at(i) = Kd[i];
+        }
+
+        if(currentState) { //if a motor state is reported
+          time += deltatime;
+          // Based on time on timer:
+          // - Raise Arm
+          double raiseArmTime = 3.0;
+          double const final_pitch =  -(45 * PI/180.0); // Umrechnung in Grad -> Radiant
+          if(time <= raiseArmTime) {
+            localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = final_pitch * time; // -45 Grad im Bogenmaß nach vorne
+            localCmdBuffer.kp.at(LEFT_SHOULDER_PITCH) = 40.0;    // Passenden Steifigkeitswert (Kp) wählen
+            localCmdBuffer.kd.at(LEFT_SHOULDER_PITCH) = 1.5;     // Passenden Dämpfungswert (Kd) wählen
+          } else {
+            localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = final_pitch; // -45 Grad im Bogenmaß nach vorne
+            localCmdBuffer.kp.at(LEFT_SHOULDER_PITCH) = 40.0;    // Passenden Steifigkeitswert (Kp) wählen
+            localCmdBuffer.kd.at(LEFT_SHOULDER_PITCH) = 1.5;     // Passenden Dämpfungswert (Kd) wählen
+          }
+          // - Repeat 4x
+          //  - Wave left
+          //  - Wave right
+          // - Lower Arm
+          
+          motorCmdBuffer.SetData(localCmdBuffer);
+        }
+
+
+
+        motorCmdBuffer.SetData(localCmdBuffer);
+      }
+
+      void writeLowCommand() {
+        unitree_hg::msg::LowCmd low_command;
+        low_command.mode_pr = static_cast<uint8_t>(mode_pr_);
+        low_command.mode_machine = mode_machine_;
+
+        const std::shared_ptr<const MotorCommand> mc =
+            motorCmdBuffer.GetData();
+        if (mc) {
+          for (size_t i = 0; i < G1_NUM_MOTOR; i++) {
+            low_command.motor_cmd.at(i).mode = 1;  // 1:Enable, 0:Disable
+            low_command.motor_cmd.at(i).tau = mc->tau_ff.at(i);
+            low_command.motor_cmd.at(i).q = mc->q_target.at(i);
+            low_command.motor_cmd.at(i).dq = mc->dq_target.at(i);
+            low_command.motor_cmd.at(i).kp = mc->kp.at(i);
+            low_command.motor_cmd.at(i).kd = mc->kd.at(i);
+          }
+
+          get_crc(low_command);
+          lowcmd_publisher_->publish(low_command);
+        }
+      }
+};
+
+int main(int argc, char **argv) {
+    rclcpp::init(argc, argv);
+
+    auto node = std::make_shared<G1WaveSender>();
+
+    rclcpp::spin(node);
+    rclcpp::shutdown();
+
+    return 0;
+}
