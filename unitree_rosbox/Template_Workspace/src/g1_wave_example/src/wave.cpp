@@ -114,7 +114,7 @@ enum G1JointIndex {
 
 class G1WaveSender : public rclcpp::Node {
     public:
-      G1WaveSender(): Node("g1_wave_sender"), mode_machine_(1) {
+      G1WaveSender(): Node("g1_wave_sender"), mode_machine_(6) {
         //  subscribe to "/lowstate" topic
         lowstate_subscriber_ = this->create_subscription<unitree_hg::msg::LowState>(
             HG_STATE_TOPIC, 10,
@@ -168,11 +168,11 @@ class G1WaveSender : public rclcpp::Node {
                         message->motor_state[i].motorstate);
           }
         }
+
         motor_state_buffer_.SetData(msTmp);
       }
 
       void IMUStateHandler(unitree_hg::msg::IMUState::SharedPtr message) {
-         //Here we could process the current momentum/inertia state
       }
 
       void Control() {
@@ -192,28 +192,48 @@ class G1WaveSender : public rclcpp::Node {
 
         if(currentState) { //if a motor state is reported
           time += deltatime;
-          // Based on time on timer:
+
+          double raiseArmTime = 1.69;
+          double defaultPoseTime = 5.0;
+          double holdTime = 3.0;
+          double resetTime = 3.0;
+
+          if(time <= defaultPoseTime) {
+            // - Set to default pose
+            for (int i = 0; i < G1_NUM_MOTOR; ++i) {
+              double const ratio =
+                std::clamp(time / defaultPoseTime, 0.0, 1.0);
+              localCmdBuffer.q_target.at(i) =
+                static_cast<float>(1.0 - ratio) * currentState->q.at(i);
+            }
+        } else if(time <= raiseArmTime + defaultPoseTime) {
           // - Raise Arm
-          double raiseArmTime = 3.0;
-          double const final_pitch =  -(45 * PI/180.0); // Umrechnung in Grad -> Radiant
-          if(time <= raiseArmTime) {
-            localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = final_pitch * time; // -45 Grad im Bogenmaß nach vorne
-            localCmdBuffer.kp.at(LEFT_SHOULDER_PITCH) = 40.0;    // Passenden Steifigkeitswert (Kp) wählen
-            localCmdBuffer.kd.at(LEFT_SHOULDER_PITCH) = 1.5;     // Passenden Dämpfungswert (Kd) wählen
-          } else {
-            localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = final_pitch; // -45 Grad im Bogenmaß nach vorne
-            localCmdBuffer.kp.at(LEFT_SHOULDER_PITCH) = 40.0;    // Passenden Steifigkeitswert (Kp) wählen
-            localCmdBuffer.kd.at(LEFT_SHOULDER_PITCH) = 1.5;     // Passenden Dämpfungswert (Kd) wählen
+            double t = time - defaultPoseTime;
+            double const final_pitch =  -(89 * PI/180.0); // Umrechnung in Grad -> Radiant
+            localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = final_pitch * std::sin(PI * (t/raiseArmTime)/2); // -45 Grad im Bogenmaß nach vorne
+            localCmdBuffer.kp.at(LEFT_SHOULDER_PITCH) = 40.0;
+            localCmdBuffer.kd.at(LEFT_SHOULDER_PITCH) = 1.5;
+          } else if(time <= holdTime + raiseArmTime + defaultPoseTime) {
+            // - Hold Arm
+            localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = -(89 * PI/180.0); 
+            localCmdBuffer.kp.at(LEFT_SHOULDER_PITCH) = 40.0;
+            localCmdBuffer.kd.at(LEFT_SHOULDER_PITCH) = 1.5;   
+          } else if (time <= resetTime + holdTime + raiseArmTime + defaultPoseTime) {
+            // - Reset Arm
+              double t = time - holdTime - raiseArmTime - defaultPoseTime;
+              const double ratio =
+                std::clamp(t / resetTime, 0.0, 1.0);
+              for (int i = 0; i < G1_NUM_MOTOR; ++i) {
+                localCmdBuffer.q_target.at(i) =
+                  static_cast<float>(1.0 - ratio) * currentState->q.at(i); // theory: smooth transition from current position to 0 practice: lol no
+              }
           }
           // - Repeat 4x
           //  - Wave left
           //  - Wave right
           // - Lower Arm
           
-          motorCmdBuffer.SetData(localCmdBuffer);
         }
-
-
 
         motorCmdBuffer.SetData(localCmdBuffer);
       }
