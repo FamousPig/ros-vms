@@ -18,5 +18,8 @@
     "C_Cpp.codeAnalysis.clangTidy.checks.disabled": [
         "clang-diagnostic-deprecated-declarations",
         "clang-diagnostic-deprecated-literal-operator"
-    ]
+    ],
+    "files.exclude": {
+        ".devcontainer/res/repos": true
+    }
 }

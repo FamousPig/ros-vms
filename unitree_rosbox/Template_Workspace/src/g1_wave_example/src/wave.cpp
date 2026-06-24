@@ -38,6 +38,7 @@ struct ImuState {
   std::array<float, 3> rpy = {};
   std::array<float, 3> omega = {};
 };
+
 struct MotorCommand {
   std::array<float, G1_NUM_MOTOR> q_target = {};
   std::array<float, G1_NUM_MOTOR> dq_target = {};
@@ -112,6 +113,28 @@ enum G1JointIndex {
   RIGHT_WRIST_YAW = 28     // NOTE INVALID for g1 23dof
 };
 
+class JointTransition {
+  public:
+    JointTransition(G1JointIndex joint, double currentRotation, double targetRotation, double duration) {
+      this->joint = joint;
+      targetRotation = targetRotation;
+      this->duration = duration;
+
+      startRotation = currentRotation;
+    }
+
+    double GetRotation(double time) {
+        double const t = time < duration ? time : duration;
+        return startRotation + ((targetRotation - startRotation) * std::sin(t/duration*0.5)); //TODO this is wrong
+    }
+
+  private:
+    double startRotation;
+    double targetRotation;
+    G1JointIndex joint;
+    double duration;
+};
+
 class G1WaveSender : public rclcpp::Node {
     public:
       G1WaveSender(): Node("g1_wave_sender"), mode_machine_(6) {
@@ -139,7 +162,7 @@ class G1WaveSender : public rclcpp::Node {
 
     private:
       rclcpp::Subscription<unitree_hg::msg::LowState>::SharedPtr
-        lowstate_subscriber_;  // ROS2 Subscriber
+        lowstate_subscriber_;
       rclcpp::Subscription<unitree_hg::msg::IMUState>::SharedPtr
         imustate_subscriber_;
       rclcpp::Publisher<unitree_hg::msg::LowCmd>::SharedPtr
@@ -153,6 +176,12 @@ class G1WaveSender : public rclcpp::Node {
 
       DataBuffer<MotorCommand> motorCmdBuffer;
       DataBuffer<MotorState> motor_state_buffer_;
+
+      DataBuffer<MotorState> preResetState;
+
+      JointTransition* waveSteps[4];
+      bool waveInitialized = false;
+      uint32_t waveStepCount = 0;
 
       double time = 0;
 
@@ -168,7 +197,6 @@ class G1WaveSender : public rclcpp::Node {
                         message->motor_state[i].motorstate);
           }
         }
-
         motor_state_buffer_.SetData(msTmp);
       }
 
@@ -190,6 +218,8 @@ class G1WaveSender : public rclcpp::Node {
           localCmdBuffer.kd.at(i) = Kd[i];
         }
 
+
+
         if(currentState) { //if a motor state is reported
           time += deltatime;
 
@@ -197,6 +227,9 @@ class G1WaveSender : public rclcpp::Node {
           double defaultPoseTime = 5.0;
           double holdTime = 3.0;
           double resetTime = 3.0;
+          double waveStepTime = 1.2;
+
+          double const final_pitch =  -(89 * PI/180.0); // Umrechnung in Grad -> Radiant
 
           if(time <= defaultPoseTime) {
             // - Set to default pose
@@ -207,31 +240,66 @@ class G1WaveSender : public rclcpp::Node {
                 static_cast<float>(1.0 - ratio) * currentState->q.at(i);
             }
         } else if(time <= raiseArmTime + defaultPoseTime) {
+
+          if(preResetState.GetData() == nullptr ) {
+              preResetState.SetData(*(motor_state_buffer_.GetData()));
+          }
+
           // - Raise Arm
             double t = time - defaultPoseTime;
-            double const final_pitch =  -(89 * PI/180.0); // Umrechnung in Grad -> Radiant
             localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = final_pitch * std::sin(PI * (t/raiseArmTime)/2); // -45 Grad im Bogenmaß nach vorne
             localCmdBuffer.kp.at(LEFT_SHOULDER_PITCH) = 40.0;
             localCmdBuffer.kd.at(LEFT_SHOULDER_PITCH) = 1.5;
           } else if(time <= holdTime + raiseArmTime + defaultPoseTime) {
             // - Hold Arm
-            localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = -(89 * PI/180.0); 
+            localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = final_pitch; 
             localCmdBuffer.kp.at(LEFT_SHOULDER_PITCH) = 40.0;
             localCmdBuffer.kd.at(LEFT_SHOULDER_PITCH) = 1.5;   
-          } else if (time <= resetTime + holdTime + raiseArmTime + defaultPoseTime) {
+          } else if(time <= (4* waveStepTime) + holdTime + raiseArmTime + defaultPoseTime) {
+              if(!waveInitialized) {
+                const double leftWaveRotation = 30 * PI/180.0;
+                const double rightWaveRotation = -30 * PI/180.0;
+                
+                JointTransition *test = new JointTransition(LEFT_SHOULDER_YAW, currentState->q.at(LEFT_SHOULDER_YAW), leftWaveRotation, waveStepTime);
+                waveSteps[0] = test;
+                test = new JointTransition(LEFT_SHOULDER_YAW, leftWaveRotation, rightWaveRotation, waveStepTime);
+                waveSteps[1] = test;
+                waveSteps[2] = new JointTransition(LEFT_SHOULDER_YAW, rightWaveRotation, leftWaveRotation, waveStepTime);
+                waveSteps[3] = new JointTransition(LEFT_SHOULDER_YAW, leftWaveRotation, rightWaveRotation, waveStepTime);
+              }
+              
+            double t = time - (waveStepCount * waveStepTime) - holdTime - raiseArmTime - defaultPoseTime;
+            //RCLCPP_INFO(this->get_logger(), "Time: %f", t);
+            if (t > waveStepTime) {
+              t = t + waveStepTime;
+              waveStepCount++;
+              RCLCPP_INFO(this->get_logger(), "Changing wave direction");
+            }
+
+            if (waveStepCount < 4) {
+              localCmdBuffer.q_target.at(LEFT_SHOULDER_YAW) = waveSteps[waveStepCount]->GetRotation(t); 
+              localCmdBuffer.kp.at(LEFT_SHOULDER_YAW) = 40.0;
+              localCmdBuffer.kd.at(LEFT_SHOULDER_YAW) = 1.5;   
+
+              localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = final_pitch; 
+              localCmdBuffer.kp.at(LEFT_SHOULDER_PITCH) = 40.0;
+              localCmdBuffer.kd.at(LEFT_SHOULDER_PITCH) = 1.5;   
+            }
+
+          } else  if (time <= resetTime + (4*waveStepTime) + holdTime + raiseArmTime + defaultPoseTime) {
             // - Reset Arm
-              double t = time - holdTime - raiseArmTime - defaultPoseTime;
+              double t = time - (waveStepCount*waveStepTime) - holdTime - raiseArmTime - defaultPoseTime;
               const double ratio =
                 std::clamp(t / resetTime, 0.0, 1.0);
               for (int i = 0; i < G1_NUM_MOTOR; ++i) {
                 localCmdBuffer.q_target.at(i) =
-                  static_cast<float>(1.0 - ratio) * currentState->q.at(i); // theory: smooth transition from current position to 0 practice: lol no
+                  static_cast<float>(1.0 - ratio) * preResetState.GetData()->q.at(i);
               }
+              localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = static_cast<float>(1.0 - ratio) * final_pitch; 
           }
           // - Repeat 4x
           //  - Wave left
           //  - Wave right
-          // - Lower Arm
           
         }
 
