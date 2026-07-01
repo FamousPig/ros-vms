@@ -53,6 +53,7 @@ https://wiki.ros.org/docker/Tutorials/Hardware%20Acceleration
   - Setze den Parameter `program` auf den Pfad zu der Codedatei, die du ausführen willst.
 - Um dich mit dem (echtem) Roboter verbinden zu können, musst du die IP-Adresse und das Subnetz des Netzwerkinterfaces einrichten. Unter Ubuntu/GNOME geschieht das unter `Einstellungen > Netzwerk > Kabelgebunden` Bei anderen Distributionen oder Desktopumgebungen kann sich die Vorgehensweise unterscheiden.
   - Setze die IP-Adresse auf `192.168.123.99` und die Subnetz-Maske auf `255.255.255.0`
+  - Um die Konfiguration zu testen, sende einen Ping an die Adresse `192.168.123.120`
   - Um sich nach der Arbeit mit dem Roboter wieder über den Ethernet-Port mit dem Internet verbinden zu können, muss das Interface (standardmäßig) wieder auf automatische Beziehung der IP-Adresse gestellt werden
 
 ## Hinweise
