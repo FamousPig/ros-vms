@@ -18,7 +18,11 @@ RUN apt-get update && apt-get install -y \
 	libeigen3-dev \
 	libboost-all-dev \
 	libspdlog-dev \
-	libfmt-dev 
+	libfmt-dev \
+	&& apt-get install -y --no-install-recommends \ 
+	ros-humble-rmw-cyclonedds-cpp \
+	ros-humble-rosidl-generator-dds-idl \
+	libyaml-cpp-dev
 
 
 WORKDIR /setup
@@ -30,12 +34,6 @@ RUN cmake .. -DCMAKE_INSTALL_PREFIX=/opt/unitree_robotics \
 	&& make -j$(nproc) install
 
 # Install unitree_ros2
-
-# Dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-	ros-humble-rmw-cyclonedds-cpp \
-	ros-humble-rosidl-generator-dds-idl \
-	libyaml-cpp-dev
 
 WORKDIR /opt
 
