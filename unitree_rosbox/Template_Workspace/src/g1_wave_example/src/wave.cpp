@@ -4,9 +4,9 @@
 #include "unitree_hg/msg/low_cmd.hpp"
 #include "unitree_hg/msg/low_state.hpp"
 
+
 using namespace std::chrono_literals;
 
-// TODO I broke the movement during refactoring
 const auto HG_CMD_TOPIC = "lowcmd";
 const auto HG_IMU_TORSO = "secondary_imu";
 const auto HG_STATE_TOPIC = "lowstate";
@@ -169,6 +169,17 @@ class G1WaveSender : public rclcpp::Node
 public:
   G1WaveSender() : Node("g1_wave_sender"), mode_machine_(6)
   {
+    MotorCommand motorCommandInit;
+    for (int i = 0; i < G1_NUM_MOTOR; ++i)
+    {
+      motorCommandInit.tau_ff.at(i) = 0.0;
+      motorCommandInit.q_target.at(i) = 0.0;
+      motorCommandInit.dq_target.at(i) = 0.0;
+      motorCommandInit.kp.at(i) = Kp[i];
+      motorCommandInit.kd.at(i) = Kd[i];
+    }
+    motorCmdBuffer.SetData(motorCommandInit);
+    
     //  subscribe to "/lowstate" topic
     lowstate_subscriber_ = this->create_subscription<unitree_hg::msg::LowState>(
         HG_STATE_TOPIC, 10,
@@ -214,7 +225,8 @@ private:
 
   DataBuffer<MotorState> preResetState;
 
-  JointTransition *currentMovement = nullptr;
+  JointTransition *currentMovementYaw = nullptr;
+  JointTransition *currentMovementPitch = nullptr;
   bool waveInitialized = false;
   uint32_t waveStepCount = 0;
 
@@ -225,8 +237,6 @@ private:
 
   void LowStateHandler(unitree_hg::msg::LowState::SharedPtr message)
   {
-    // Here we could process the current robot state
-    // get motor state
     MotorState msTmp;
     for (int i = 0; i < G1_NUM_MOTOR; ++i)
     {
@@ -255,9 +265,9 @@ private:
     // reproduce current state before writing change on top
     for (int i = 0; i < G1_NUM_MOTOR; ++i)
     {
-      localCmdBuffer.tau_ff.at(i) = 0.0;
-      localCmdBuffer.q_target.at(i) = 0.0;
-      localCmdBuffer.dq_target.at(i) = 0.0;
+      localCmdBuffer.tau_ff.at(i) = motorCmdBuffer.GetData()->tau_ff.at(i);
+      localCmdBuffer.q_target.at(i) = motorCmdBuffer.GetData()->q_target.at(i);
+      localCmdBuffer.dq_target.at(i) = motorCmdBuffer.GetData()->dq_target.at(i);
       localCmdBuffer.kp.at(i) = Kp[i];
       localCmdBuffer.kd.at(i) = Kd[i];
     }
@@ -268,17 +278,18 @@ private:
 
       double raiseArmTime = 1.69;
       double defaultPoseTime = 5.0;
-      double holdTime = 3.0;
-      double resetTime = 3.0;
-      double waveStepTime = 1.2;
+      double holdTime = 0.4;
+      double resetTime = 1.5;
+      double waveStepTime = 0.8;
 
-      double const final_pitch = -(89 * PI / 180.0); // Umrechnung in Grad -> Radiant
+      double const final_pitch = -(89 * PI / 180.0); // conversion degree -> radian
+      double const final_roll = (90 * PI / 180.0);
 
       switch (step)
       {
       case 0:
       {
-        // - Set to default pose
+        // - set to default pose
         for (int i = 0; i < G1_NUM_MOTOR; ++i)
         {
           double const ratio =
@@ -308,6 +319,10 @@ private:
         localCmdBuffer.kp.at(LEFT_SHOULDER_PITCH) = 40.0;
         localCmdBuffer.kd.at(LEFT_SHOULDER_PITCH) = 1.5;
 
+        localCmdBuffer.q_target.at(LEFT_WRIST_ROLL) = final_roll * std::sin(PI * (t / raiseArmTime) / 2); // -45 Grad im Bogenmaß nach vorne
+        localCmdBuffer.kp.at(LEFT_WRIST_ROLL) = 40.0;
+        localCmdBuffer.kd.at(LEFT_WRIST_ROLL) = 1.5;
+
         if (time >= (stepStartTime + raiseArmTime))
         {
           step++;
@@ -323,6 +338,10 @@ private:
         localCmdBuffer.kp.at(LEFT_SHOULDER_PITCH) = 40.0;
         localCmdBuffer.kd.at(LEFT_SHOULDER_PITCH) = 1.5;
 
+        localCmdBuffer.q_target.at(LEFT_WRIST_ROLL) = final_roll;
+        localCmdBuffer.kp.at(LEFT_WRIST_ROLL) = 40.0;
+        localCmdBuffer.kd.at(LEFT_WRIST_ROLL) = 1.5;
+
         if (time >= (stepStartTime + holdTime))
         {
           step++;
@@ -336,23 +355,21 @@ private:
       {
         const double leftWaveRotation = 30 * PI / 180.0;
         // left wave
-        if (currentMovement == nullptr)
+        if (currentMovementYaw == nullptr)
         {
-          currentMovement = new JointTransition(LEFT_SHOULDER_YAW, currentState->q.at(LEFT_SHOULDER_YAW), leftWaveRotation, waveStepTime);
+          currentMovementYaw = new JointTransition(LEFT_SHOULDER_YAW, currentState->q.at(LEFT_SHOULDER_YAW), leftWaveRotation, waveStepTime);
         }
 
-        localCmdBuffer.q_target.at(LEFT_SHOULDER_YAW) = currentMovement->GetRotation(time - stepStartTime);
+        localCmdBuffer.q_target.at(LEFT_SHOULDER_YAW) = currentMovementYaw->GetRotation(time - stepStartTime);
         localCmdBuffer.kp.at(LEFT_SHOULDER_YAW) = 40.0;
         localCmdBuffer.kd.at(LEFT_SHOULDER_YAW) = 1.5;
-
-        localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = final_pitch;
-        localCmdBuffer.kp.at(LEFT_SHOULDER_PITCH) = 40.0;
-        localCmdBuffer.kd.at(LEFT_SHOULDER_PITCH) = 1.5;
 
         if (time >= (stepStartTime + waveStepTime))
         {
           step++;
           stepStartTime = time;
+          delete currentMovementYaw;
+          currentMovementYaw = nullptr;
         }
 
         break;
@@ -362,12 +379,21 @@ private:
       {
 
         const double rightWaveRotation = -30 * PI / 180.0;
+        if (currentMovementYaw == nullptr)
+        {
+          currentMovementYaw = new JointTransition(LEFT_SHOULDER_YAW, currentState->q.at(LEFT_SHOULDER_YAW), rightWaveRotation, waveStepTime);
+        }
         // right wave
+        localCmdBuffer.q_target.at(LEFT_SHOULDER_YAW) = currentMovementYaw->GetRotation(time - stepStartTime);
+        localCmdBuffer.kp.at(LEFT_SHOULDER_YAW) = 40.0;
+        localCmdBuffer.kd.at(LEFT_SHOULDER_YAW) = 1.5;
 
         if (time >= (stepStartTime + waveStepTime))
         {
           step++;
           stepStartTime = time;
+          delete currentMovementYaw;
+          currentMovementYaw = nullptr;
         }
 
         break;
@@ -377,6 +403,12 @@ private:
       {
         // - Reset Arm
         double t = time - stepStartTime;
+        if (currentMovementYaw == nullptr)
+        {
+          currentMovementYaw = new JointTransition(LEFT_SHOULDER_YAW, currentState->q.at(LEFT_SHOULDER_YAW), 0.0, resetTime);
+          currentMovementPitch = new JointTransition(LEFT_SHOULDER_PITCH, currentState->q.at(LEFT_SHOULDER_PITCH), 0.0, resetTime);
+        }
+
         const double ratio =
             std::clamp((time - stepStartTime) / resetTime, 0.0, 1.0);
         for (int i = 0; i < G1_NUM_MOTOR; ++i)
@@ -384,12 +416,23 @@ private:
           localCmdBuffer.q_target.at(i) =
               static_cast<float>(1.0 - ratio) * preResetState.GetData()->q.at(i);
         }
-        localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = static_cast<float>(1.0 - ratio) * final_pitch;
+        localCmdBuffer.q_target.at(LEFT_SHOULDER_YAW) = currentMovementYaw->GetRotation(t);
+        localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = currentMovementPitch->GetRotation(t);
+
+        localCmdBuffer.q_target.at(LEFT_WRIST_ROLL) = final_roll * (1 - std::sin(PI * (t / resetTime) / 2));
+        localCmdBuffer.kp.at(LEFT_WRIST_ROLL) = 40.0;
+        localCmdBuffer.kd.at(LEFT_WRIST_ROLL) = 1.5;
 
         if (time >= (stepStartTime + resetTime))
         {
           step++;
           stepStartTime = time;
+
+          delete currentMovementYaw;
+          currentMovementYaw = nullptr;
+
+          delete currentMovementPitch;
+          currentMovementPitch = nullptr;
         }
         break;
       }
