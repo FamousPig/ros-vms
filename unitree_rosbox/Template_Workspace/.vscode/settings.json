@@ -1,5 +1,5 @@
 {
-    "cmake.sourceDirectory": "/home/rosdev/ros2_ws/example/src",
+    "cmake.sourceDirectory": "/home/rosdev/ros2_ws/src/g1_wave_example",
     "ROS2.distro": "humble",
     "python.autoComplete.extraPaths": [
         "/opt/unitree_ros2/cyclonedds_ws/install/unitree_hg/local/lib/python3.10/dist-packages",

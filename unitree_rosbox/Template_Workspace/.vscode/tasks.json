@@ -28,6 +28,9 @@
                 "--event-handlers console_cohesion+",
                 "--base-paths .",
                 "--cmake-args -DCMAKE_BUILD_TYPE=Debug"
+            ],
+            "problemMatcher": [
+                "$colcon-gcc"
             ]
         },
         {

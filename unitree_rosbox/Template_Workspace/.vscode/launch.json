@@ -34,7 +34,6 @@
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/g1_wave_example/wave",
-      "args": ["shake_hand"],
       "stopAtEntry": false,
       "cwd": "${fileDirname}",
       "environment": [ {"name": "ROS_DOMAIN_ID","value": "0"},
