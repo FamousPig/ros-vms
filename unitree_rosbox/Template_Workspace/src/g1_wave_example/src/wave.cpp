@@ -6,7 +6,7 @@
 
 using namespace std::chrono_literals;
 
-//TODO I broke the movement during refactoring
+// TODO I broke the movement during refactoring
 const auto HG_CMD_TOPIC = "lowcmd";
 const auto HG_IMU_TORSO = "secondary_imu";
 const auto HG_STATE_TOPIC = "lowstate";
@@ -123,29 +123,45 @@ enum G1JointIndex
   RIGHT_WRIST_YAW = 28    // NOTE INVALID for g1 23dof
 };
 
+class CubicJointTrajectory
+{
+public:
+  CubicJointTrajectory(double startAngle, double targetAngle, double duration):
+  duration_(duration),
+  a0_(startAngle),
+  a1_(0.0),
+  a2_(3.0 / (duration * duration) * (targetAngle - startAngle)),
+  a3_(-2.0 / (duration * duration * duration) * (targetAngle - startAngle) )
+  {
+  }
+
+  double angleAt(double time) {
+     double t = std::clamp(time, 0.0, duration_);
+     return a0_ + a1_ * t + a2_ * t * t + a3_ * t * t * t;
+  }
+
+private:
+  double duration_;
+  double a0_, a1_, a2_, a3_;
+};
+
 class JointTransition
 {
 public:
-  JointTransition(G1JointIndex joint, double currentRotation, double targetRotation, double duration)
+  JointTransition(G1JointIndex joint, double currentRotation, double targetRotation, double duration):
+  joint_(joint),
+  traj_(CubicJointTrajectory(currentRotation, targetRotation, duration))
   {
-    this->joint = joint;
-    targetRotation = targetRotation;
-    this->duration = duration;
-
-    startRotation = currentRotation;
   }
 
   double GetRotation(double time)
   {
-    double const t = time < duration ? time : duration;
-    return startRotation + ((targetRotation - startRotation) * std::sin(t / duration * 0.5)); // TODO this is wrong
+    return traj_.angleAt(time);
   }
 
 private:
-  double startRotation;
-  double targetRotation;
-  G1JointIndex joint;
-  double duration;
+  G1JointIndex joint_;
+  CubicJointTrajectory traj_;
 };
 
 class G1WaveSender : public rclcpp::Node
@@ -314,7 +330,6 @@ private:
         }
 
         break;
-
       }
       case 3:
       case 5:
@@ -383,43 +398,43 @@ private:
         break;
       }
     }
-      motorCmdBuffer.SetData(localCmdBuffer);
+    motorCmdBuffer.SetData(localCmdBuffer);
   }
 
-    void writeLowCommand()
-    {
-      unitree_hg::msg::LowCmd low_command;
-      low_command.mode_pr = static_cast<uint8_t>(mode_pr_);
-      low_command.mode_machine = mode_machine_;
-
-      const std::shared_ptr<const MotorCommand> mc =
-          motorCmdBuffer.GetData();
-      if (mc)
-      {
-        for (size_t i = 0; i < G1_NUM_MOTOR; i++)
-        {
-          low_command.motor_cmd.at(i).mode = 1; // 1:Enable, 0:Disable
-          low_command.motor_cmd.at(i).tau = mc->tau_ff.at(i);
-          low_command.motor_cmd.at(i).q = mc->q_target.at(i);
-          low_command.motor_cmd.at(i).dq = mc->dq_target.at(i);
-          low_command.motor_cmd.at(i).kp = mc->kp.at(i);
-          low_command.motor_cmd.at(i).kd = mc->kd.at(i);
-        }
-
-        get_crc(low_command);
-        lowcmd_publisher_->publish(low_command);
-      }
-    }
-  };
-
-  int main(int argc, char **argv)
+  void writeLowCommand()
   {
-    rclcpp::init(argc, argv);
+    unitree_hg::msg::LowCmd low_command;
+    low_command.mode_pr = static_cast<uint8_t>(mode_pr_);
+    low_command.mode_machine = mode_machine_;
 
-    auto node = std::make_shared<G1WaveSender>();
+    const std::shared_ptr<const MotorCommand> mc =
+        motorCmdBuffer.GetData();
+    if (mc)
+    {
+      for (size_t i = 0; i < G1_NUM_MOTOR; i++)
+      {
+        low_command.motor_cmd.at(i).mode = 1; // 1:Enable, 0:Disable
+        low_command.motor_cmd.at(i).tau = mc->tau_ff.at(i);
+        low_command.motor_cmd.at(i).q = mc->q_target.at(i);
+        low_command.motor_cmd.at(i).dq = mc->dq_target.at(i);
+        low_command.motor_cmd.at(i).kp = mc->kp.at(i);
+        low_command.motor_cmd.at(i).kd = mc->kd.at(i);
+      }
 
-    rclcpp::spin(node);
-    rclcpp::shutdown();
-
-    return 0;
+      get_crc(low_command);
+      lowcmd_publisher_->publish(low_command);
+    }
   }
+};
+
+int main(int argc, char **argv)
+{
+  rclcpp::init(argc, argv);
+
+  auto node = std::make_shared<G1WaveSender>();
+
+  rclcpp::spin(node);
+  rclcpp::shutdown();
+
+  return 0;
+}
