@@ -22,10 +22,24 @@ RUN apt-get update && apt-get install -y \
 	&& apt-get install -y --no-install-recommends \ 
 	ros-humble-rmw-cyclonedds-cpp \
 	ros-humble-rosidl-generator-dds-idl \
-	libyaml-cpp-dev
-
+	libyaml-cpp-dev \
+	wget \
+	software-properties-common
 
 WORKDIR /setup
+
+# install clang tools
+RUN wget https://apt.llvm.org/llvm.sh
+RUN chmod +x llvm.sh
+RUN ./llvm.sh 18 all
+RUN update-alternatives --install /usr/bin/clangd clangd /usr/bin/clangd-18 100 \
+    && update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100 \
+    && update-alternatives --install /usr/bin/clang clang /usr/bin/clang-18 100 \
+    && update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-18 100 \
+    && update-alternatives --install /usr/bin/run-clang-tidy run-clang-tidy /usr/bin/run-clang-tidy-18 100
+ENV CC=/usr/bin/clang-18
+ENV CXX=/usr/bin/clang++-18
+
 COPY res/repos/unitree_sdk2 /setup/unitree_sdk2
 WORKDIR /setup/unitree_sdk2
 
@@ -46,7 +60,7 @@ RUN colcon build --packages-select cyclonedds
 RUN set -a && . /opt/ros/humble/setup.sh && colcon build
 
 WORKDIR /opt/unitree_ros2
-RUN set -a && . /opt/ros/humble/setup.sh && colcon build
+RUN set -a && . /opt/ros/humble/setup.sh && colcon build --packages-ignore unitree_ros2_example
 
 
 # Install unitree_mujoco
@@ -87,8 +101,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 	lsb-release \
 	iputils-ping \
 	iproute2 \
-	vim \
-	wget
+	vim 
 
 ADD --chmod=755 res/setup.sh /opt/unitree_ros2
 
