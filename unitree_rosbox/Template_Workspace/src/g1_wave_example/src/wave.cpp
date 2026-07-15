@@ -287,7 +287,7 @@ private:
 
       switch (step)
       {
-      case 0:
+      case 0: // Default pose (all angles 0)
       {
         // - set to default pose
         for (int i = 0; i < G1_NUM_MOTOR; ++i)
@@ -306,7 +306,7 @@ private:
 
         break;
       }
-      case 1:
+      case 1: // Raise arm
       {
         if (preResetState.GetData() == nullptr)
         {
@@ -331,7 +331,7 @@ private:
 
         break;
       }
-      case 2:
+      case 2: // Hold position
       {
         // - Hold Arm
         localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = final_pitch;
@@ -350,7 +350,8 @@ private:
 
         break;
       }
-      case 3:
+
+      case 3: // Wave left
       case 5:
       {
         const double leftWaveRotation = 30 * PI / 180.0;
@@ -374,7 +375,8 @@ private:
 
         break;
       }
-      case 4:
+
+      case 4: // Wave right
       case 6:
       {
 
@@ -399,7 +401,7 @@ private:
         break;
       }
 
-      case 7:
+      case 7: // Reset position
       {
         // - Reset Arm
         double t = time - stepStartTime;
