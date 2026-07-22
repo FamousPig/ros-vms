@@ -24,7 +24,9 @@ RUN apt-get update && apt-get install -y \
 	ros-humble-rosidl-generator-dds-idl \
 	libyaml-cpp-dev \
 	wget \
-	software-properties-common
+	software-properties-common \
+	python3-pip \
+	python3.10-venv
 
 WORKDIR /setup
 
@@ -88,6 +90,10 @@ WORKDIR /opt/unitree_mujoco/simulate/build
 RUN cmake ..
 RUN make -j$(nproc)
 
+#Install g1-crc-python-module
+COPY res/repos/g1_crc_module /setup/g1_crc_module
+#RUN pip install /setup/g1_crc_module
+
 
 FROM build AS run 
 
@@ -137,8 +143,11 @@ RUN chown -R $USERNAME:$USERNAME /home/$USERNAME/unitree_mujoco
 USER $USERNAME
 
 # Create workspace so that user own this directory
-RUN mkdir -p /home/$USERNAME/ros2_ws/src
+RUN mkdir -p /home/$USERNAME/ros2_ws/src/.venv
 WORKDIR /home/$USERNAME/ros2_ws
+RUN python3 -m venv .venv
+RUN set -a && . .venv/bin/activate && pip install /setup/g1_crc_module
+
 
 RUN echo 'source $HOME/ros2_ws/setup.sh' >> /home/$USERNAME/.bashrc
 
