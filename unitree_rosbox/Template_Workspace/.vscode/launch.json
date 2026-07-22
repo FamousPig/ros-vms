@@ -1,7 +1,6 @@
 {
   "version": "0.2.0",
   "configurations": [
-    
     {
       "name": "Simulator",
       "type": "cppdbg",
@@ -10,9 +9,16 @@
       "args": [],
       "stopAtEntry": false,
       "cwd": "${fileDirname}",
-      "environment": [ {"name": "ROS_DOMAIN_ID","value": "1"},
-                       {"name": "CYCLONEDDS_URI", "value": "<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"lo\" priority=\"default\" multicast=\"default\" /></Interfaces></General></Domain></CycloneDDS>"}
-],
+      "environment": [
+        {
+          "name": "ROS_DOMAIN_ID",
+          "value": "1"
+        },
+        {
+          "name": "CYCLONEDDS_URI",
+          "value": "<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"lo\" priority=\"default\" multicast=\"default\" /></Interfaces></General></Domain></CycloneDDS>"
+        }
+      ],
       "externalConsole": false,
       "MIMode": "gdb",
       "preLaunchTask": "colcon: build (debug)",
@@ -30,15 +36,34 @@
       ]
     },
     {
+      "name": "Python Debugger: Current File with Arguments",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/g1-wave-python/wavey/wave.py",
+      "console": "integratedTerminal",
+      "args": "${command:pickArgs}",
+      "env": {
+        "ROS_DOMAIN_ID": "0",
+        "CYCLONEDDS_URI": "<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"lo\" priority=\"default\" multicast=\"default\" /></Interfaces></General></Domain></CycloneDDS>"
+      }
+    },
+    {
       "name": "Real",
       "type": "cppdbg",
       "request": "launch",
       "program": "${workspaceFolder}/build/g1_wave_example/wave",
       "stopAtEntry": false,
       "cwd": "${fileDirname}",
-      "environment": [ {"name": "ROS_DOMAIN_ID","value": "0"},
-                        {"name": "CYCLONEDDS_URI", "value": "<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"enp0s31f6\" priority=\"default\" multicast=\"default\" /></Interfaces></General></Domain></CycloneDDS>"}
-                      ],
+      "environment": [
+        {
+          "name": "ROS_DOMAIN_ID",
+          "value": "0"
+        },
+        {
+          "name": "CYCLONEDDS_URI",
+          "value": "<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"enp0s31f6\" priority=\"default\" multicast=\"default\" /></Interfaces></General></Domain></CycloneDDS>"
+        }
+      ],
       "externalConsole": false,
       "MIMode": "gdb",
       "preLaunchTask": "colcon: build (debug)",
@@ -54,6 +79,6 @@
           "ignoreFailures": true
         }
       ]
-    }
+    },
   ]
 }
