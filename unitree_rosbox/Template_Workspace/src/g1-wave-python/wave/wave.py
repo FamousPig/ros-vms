@@ -1,6 +1,8 @@
 import rclpy
 from rclpy.node import Node
 
+from g1_crc import LowCmd as crcLowCmd,calculate_crc
+
 import unitree_hg.msg._low_cmd as lowcmd
 import unitree_hg.msg._low_state as lowstate
 import unitree_hg.msg._motor_cmd as motorcmd
@@ -118,12 +120,14 @@ class WaveNode(Node):
     def __init__(self):
         super().__init__('wave_node')
         timer_period = 0.002
-        self.control_timer = self.create_timer(timer_period, self.control)
-        # self.write_timer = self.create_timer(timer_period, self.writeLowCmd)
         self.low_state_subscriber = self.create_subscription(lowstate.LowState, 'lowstate', self.lowStateHandler, 10)
+        self._low_cmd_publisher = self.create_publisher(lowcmd.LowCmd, 'lowcmd', 10)
         self.joint = G1JointIndex.LEFT_SHOULDER_PITCH;
         self.deltatime = timer_period
         self.control_time = 0.0
+
+        self.control_timer = self.create_timer(timer_period, self.control)
+        self.write_timer = self.create_timer(timer_period, self.writeLowCmd)
 
         self.motorState = DataBuffer()
         self.motorCommand = DataBuffer()
@@ -131,39 +135,69 @@ class WaveNode(Node):
     def control(self):
         self.control_time += self.deltatime
         self.currentState = self.motorState.getData()
-        default_pose_time = 2.0
+
+        if self.currentState == None:
+            return
+
+        default_pose_time = 6.0
         ratio = self.control_time / default_pose_time
         if ratio > 1: ratio = 1
+
         self.local_cmd_buffer = MotorCommand()
 
-        for i in [0,G1_NUM_MOTOR-1]:
+        for i in range(G1_NUM_MOTOR):
             self.local_cmd_buffer.q_target[i] = (1.0 - ratio) * self.currentState.q[i]
 
         self.motorCommand.setData(self.local_cmd_buffer)
     
     def writeLowCmd(self):
         command: MotorCommand = self.motorCommand.getData()
-        lowCommand = lowcmd.LowCmd()
 
-        for i in [0,G1_NUM_MOTOR-1]:
+        if command == None:
+            return
+
+        lowCommand: lowcmd.LowCmd = lowcmd.LowCmd()
+        rawLowCommand: crcLowCmd = crcLowCmd()
+
+        lowCommand.mode_machine = 6
+        lowCommand.mode_pr = 0
+
+        for i in range(G1_NUM_MOTOR):
             lowCommand.motor_cmd[i].mode = 1;
-            lowCommand.motor_cmd[i].tau = command.tau_ff[i];
             lowCommand.motor_cmd[i].q = command.q_target[i];
-            lowCommand.motor_cmd[i].d = command.d_target[i];
             lowCommand.motor_cmd[i].dq = command.dq_target[i];
             lowCommand.motor_cmd[i].kp = command.kp[i];
             lowCommand.motor_cmd[i].kd = command.kd[i];
+            lowCommand.motor_cmd[i].tau = command.tau_ff[i];
 
-        
+        for i in range(G1_NUM_MOTOR):
+            motor = lowCommand.motor_cmd[i]
+            rawMotor = rawLowCommand.motorCmd[i]
+            rawMotor.mode = motor.mode
+            rawMotor.q = motor.q
+            rawMotor.dq = motor.dq
+            rawMotor.tau = motor.kp
+            rawMotor.kp = motor.kd
+            rawMotor.kd = motor.tau
+            rawLowCommand.motorCmd[i] = rawMotor
+
+        rawLowCommand.modeMachine = lowCommand.mode_machine
+        rawLowCommand.modePr = lowCommand.mode_pr
+
+        calculate_crc(rawLowCommand)
+        lowCommand.crc = rawLowCommand.crc
+
+        self._low_cmd_publisher.publish(lowCommand);
+
 
     def lowStateHandler(self, message : lowstate.LowState):
         msTmp = MotorState()
 
-        for i in [0,G1_NUM_MOTOR-1]:
+        for i in range(G1_NUM_MOTOR):
             msTmp.q[i] = message.motor_state[i].q;
             msTmp.dq[i] = message.motor_state[i].dq;
 
-            if(message.motor_state[i].motorState != 0 and i <= G1JointIndex.RIGHT_ANKLE_ROLL):
+            if(message.motor_state[i].motorstate != 0 and i <= G1JointIndex.RIGHT_ANKLE_ROLL):
                 print("[ERROR] Motor ", i, " with code ", message.motor_state[i].motorState )
 
         self.motorState.setData(msTmp) 
@@ -179,5 +213,5 @@ def main(args=None):
     wave_node.destroy_node()
     rclpy.shutdown()
 
-__name__='__main__'
-main()
+if __name__ == '__main__':
+    main()

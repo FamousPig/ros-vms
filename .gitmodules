@@ -1,0 +1,3 @@
+[submodule "unitree_rosbox/Template_Workspace/src/g1-wave-python/external_modules/g1-crc-python-module"]
+	path = unitree_rosbox/Template_Workspace/src/g1-wave-python/external_modules/g1-crc-python-module
+	url = git@github.com:FamousPig/g1-crc-python-module.git

@@ -36,18 +36,6 @@
       ]
     },
     {
-      "name": "Python Debugger: Current File with Arguments",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/build/g1-wave-python/wavey/wave.py",
-      "console": "integratedTerminal",
-      "args": "${command:pickArgs}",
-      "env": {
-        "ROS_DOMAIN_ID": "0",
-        "CYCLONEDDS_URI": "<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"lo\" priority=\"default\" multicast=\"default\" /></Interfaces></General></Domain></CycloneDDS>"
-      }
-    },
-    {
       "name": "Real",
       "type": "cppdbg",
       "request": "launch",
@@ -79,6 +67,32 @@
           "ignoreFailures": true
         }
       ]
+    },
+    {
+      "name": "Python Debugger: G1-Wave",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/g1-wave-python/wave/wave.py",
+      "preLaunchTask": "colcon: build (debug)",
+      "console": "integratedTerminal",
+      "args": "${command:pickArgs}",
+      "env": {
+        "ROS_DOMAIN_ID": "1",
+        "CYCLONEDDS_URI": "<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"lo\" priority=\"default\" multicast=\"default\" /></Interfaces></General></Domain></CycloneDDS>"
+      }
+    },
+    {
+      "name": "Python Debugger: G1-Wave (Real)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/g1-wave-python/wave/wave.py",
+      "preLaunchTask": "colcon: build (debug)",
+      "console": "integratedTerminal",
+      "args": "${command:pickArgs}",
+      "env": {
+        "ROS_DOMAIN_ID": "0",
+        "CYCLONEDDS_URI": "<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"enp0s31f6\" priority=\"default\" multicast=\"default\" /></Interfaces></General></Domain></CycloneDDS>"
+      }
     },
   ]
 }
