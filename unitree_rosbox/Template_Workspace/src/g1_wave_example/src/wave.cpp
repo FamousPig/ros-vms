@@ -292,10 +292,15 @@ private:
         // - set to default pose
         for (int i = 0; i < G1_NUM_MOTOR; ++i)
         {
+
           double const ratio =
               std::clamp(time / defaultPoseTime, 0.0, 1.0);
+          if (i > 14) {
           localCmdBuffer.q_target.at(i) =
               static_cast<float>(1.0 - ratio) * currentState->q.at(i);
+          } else {
+            localCmdBuffer.q_target.at(i) = currentState->q.at(i);
+          }
         }
 
         if (time >= (stepStartTime + defaultPoseTime))
@@ -415,8 +420,10 @@ private:
             std::clamp((time - stepStartTime) / resetTime, 0.0, 1.0);
         for (int i = 0; i < G1_NUM_MOTOR; ++i)
         {
-          localCmdBuffer.q_target.at(i) =
-              static_cast<float>(1.0 - ratio) * preResetState.GetData()->q.at(i);
+          if (i > 15) {
+            localCmdBuffer.q_target.at(i) =
+                static_cast<float>(1.0 - ratio) * preResetState.GetData()->q.at(i);
+          }
         }
         localCmdBuffer.q_target.at(LEFT_SHOULDER_YAW) = currentMovementYaw->GetRotation(t);
         localCmdBuffer.q_target.at(LEFT_SHOULDER_PITCH) = currentMovementPitch->GetRotation(t);
