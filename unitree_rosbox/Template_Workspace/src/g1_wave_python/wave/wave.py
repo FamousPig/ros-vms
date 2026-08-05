@@ -13,43 +13,44 @@ from math import pi
 import array
 
 G1_NUM_MOTOR=29
+PI = 3.14159265358979323846;
 
-class G1JointIndex():
-  LEFT_HIP_PITCH = 0,
-  LEFT_HIP_ROLL = 1,
-  LEFT_HIP_YAW = 2,
-  LEFT_KNEE = 3,
-  LEFT_ANKLE_PITCH = 4,
-  LEFT_ANKLE_B = 4,
-  LEFT_ANKLE_ROLL = 5,
-  LEFT_ANKLE_A = 5,
-  RIGHT_HIP_PITCH = 6,
-  RIGHT_HIP_ROLL = 7,
-  RIGHT_HIP_YAW = 8,
-  RIGHT_KNEE = 9,
-  RIGHT_ANKLE_PITCH = 10,
-  RIGHT_ANKLE_B = 10,
-  RIGHT_ANKLE_ROLL = 11,
-  RIGHT_ANKLE_A = 11,
-  WAIST_YAW = 12,
-  WAIST_ROLL = 13,  # INVALID for g1 23dof/29dof with waist locked
-  WAIST_A = 13,     # INVALID for g1 23dof/29dof with waist locked
-  WAIST_PITCH = 14, # INVALID for g1 23dof/29dof with waist locked
-  WAIST_B = 14,     # INVALID for g1 23dof/29dof with waist locked
-  LEFT_SHOULDER_PITCH = 15,
-  LEFT_SHOULDER_ROLL = 16,
-  LEFT_SHOULDER_YAW = 17,
-  LEFT_ELBOW = 18,
-  LEFT_WRIST_ROLL = 19,
+class G1JointIndex(Enum):
+  LEFT_HIP_PITCH = 0
+  LEFT_HIP_ROLL = 1
+  LEFT_HIP_YAW = 2
+  LEFT_KNEE = 3
+  LEFT_ANKLE_PITCH = 4
+  LEFT_ANKLE_B = 4
+  LEFT_ANKLE_ROLL = 5
+  LEFT_ANKLE_A = 5
+  RIGHT_HIP_PITCH = 6
+  RIGHT_HIP_ROLL = 7
+  RIGHT_HIP_YAW = 8
+  RIGHT_KNEE = 9
+  RIGHT_ANKLE_PITCH = 10
+  RIGHT_ANKLE_B = 10
+  RIGHT_ANKLE_ROLL = 11
+  RIGHT_ANKLE_A = 11
+  WAIST_YAW = 12
+  WAIST_ROLL = 13  # INVALID for g1 23dof/29dof with waist locked
+  WAIST_A = 13     # INVALID for g1 23dof/29dof with waist locked
+  WAIST_PITCH = 14 # INVALID for g1 23dof/29dof with waist locked
+  WAIST_B = 14     # INVALID for g1 23dof/29dof with waist locked
+  LEFT_SHOULDER_PITCH = 15
+  LEFT_SHOULDER_ROLL = 16
+  LEFT_SHOULDER_YAW = 17
+  LEFT_ELBOW = 18
+  LEFT_WRIST_ROLL = 19
   LEFT_WRIST_PITCH = 20, # INVALID for g1 23dof
   LEFT_WRIST_YAW = 21,   # INVALID for g1 23dof
-  RIGHT_SHOULDER_PITCH = 22,
-  RIGHT_SHOULDER_ROLL = 23,
-  RIGHT_SHOULDER_YAW = 24,
-  RIGHT_ELBOW = 25,
-  RIGHT_WRIST_ROLL = 26,
-  RIGHT_WRIST_PITCH = 27, # INVALID for g1 23dof
-  RIGHT_WRIST_YAW = 28    # INVALID for g1 23dof
+  RIGHT_SHOULDER_PITCH = 22
+  RIGHT_SHOULDER_ROLL = 23
+  RIGHT_SHOULDER_YAW = 24
+  RIGHT_ELBOW = 25
+  RIGHT_WRIST_ROLL = 26
+  RIGHT_WRIST_PITCH = 27 # INVALID for g1 23dof
+  RIGHT_WRIST_YAW = 28   # INVALID for g1 23dof
 
 KP = array.array('f', (
 60, 60, 60, 100, 40, 40,    # legs
