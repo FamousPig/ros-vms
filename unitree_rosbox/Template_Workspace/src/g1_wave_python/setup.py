@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'g1-wave-python'
+package_name = 'g1_wave_python'
 
 setup(
     name=package_name,

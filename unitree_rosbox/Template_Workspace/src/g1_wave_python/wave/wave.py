@@ -7,8 +7,6 @@ import unitree_hg.msg._low_cmd as lowcmd
 import unitree_hg.msg._low_state as lowstate
 import unitree_hg.msg._motor_cmd as motorcmd
 
-
-
 from threading import Lock
 
 from math import pi
@@ -157,7 +155,6 @@ class WaveNode(Node):
         command: MotorCommand = self.motorCommand.getData()
 
         if command == None:
-            print("Command not initialized???")
             return
 
         lowCommand: lowcmd.LowCmd = lowcmd.LowCmd()
