@@ -1,5 +1,5 @@
 '''
-Adapted from https://github.com/unitreerobotics/unitree_sdk2_python. Original License follows
+Adapted from https://github.com/unitreerobotics/unitree_sdk2_python. Original license follows:
 
 BSD 3-Clause License
 
