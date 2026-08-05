@@ -33,12 +33,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 '''
 
 import struct
-# import cyclonedds
-# import cyclonedds.idl as idl
 
 from .singleton import Singleton
-# from ..idl.unitree_go.msg.dds_ import LowCmd_
-# from ..idl.unitree_go.msg.dds_ import LowState_
 
 from unitree_hg.msg import LowCmd as HGLowCmd_
 from unitree_hg.msg import LowState as HGLowState_
@@ -50,10 +46,6 @@ import platform
 class CRC(Singleton):
     def __init__(self):
         #4 bytes aligned, little-endian format.
-        #size 812
-        self.__packFmtLowCmd = '<4B4IH2x' + 'B3x5f3I' * 20 + '4B' + '55Bx2I'
-        #size 1180
-        self.__packFmtLowState = '<4B4IH2x' + '13fb3x' + 'B3x7fb3x3I' * 20 + '4BiH4b15H' + '8hI41B3xf2b2x2f4h2I'
         #size 1004
         self.__packFmtHGLowCmd = '<2B2x' + 'B3x5fI' * 35 + '5I'
         #size 2092
