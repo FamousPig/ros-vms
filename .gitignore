@@ -5,3 +5,7 @@ unitree_rosbox/Template_Workspace/log
 unitree_rosbox/Template_Workspace/example
 unitree_rosbox/Template_Workspace/.devcontainer/res/repos
 unitree_rosbox/Template_Workspace/src/build
+unitree_rosbox/Template_Workspace/*/log
+/unitree_rosbox/Template_Workspace/src/**/__pycache__
+/unitree_rosbox/Template_Workspace/**/share/
+/unitree_rosbox/Template_Workspace/src/install
