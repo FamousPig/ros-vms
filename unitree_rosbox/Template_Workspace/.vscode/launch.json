@@ -69,6 +69,40 @@
       ]
     },
     {
+      "name": "CRC Node",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/g1_lowcmd_crc/g1_lowcmd_crc",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${fileDirname}",
+      "environment": [
+        {
+          "name": "ROS_DOMAIN_ID",
+          "value": "1"
+        },
+        {
+          "name": "CYCLONEDDS_URI",
+          "value": "<CycloneDDS><Domain><General><Interfaces><NetworkInterface name=\"lo\" priority=\"default\" multicast=\"default\" /></Interfaces></General></Domain></CycloneDDS>"
+        }
+      ],
+      "externalConsole": false,
+      "MIMode": "gdb",
+      "preLaunchTask": "colcon: build (debug)",
+      "setupCommands": [
+        {
+          "description": "Enable pretty-printing for gdb",
+          "text": "-enable-pretty-printing",
+          "ignoreFailures": true
+        },
+        {
+          "description": "Set Disassembly Flavor to Intel",
+          "text": "-gdb-set disassembly-flavor intel",
+          "ignoreFailures": true
+        }
+      ]
+    },
+    {
       "name": "Python Debugger: G1-Wave",
       "type": "debugpy",
       "request": "launch",

@@ -148,7 +148,6 @@ WORKDIR /home/$USERNAME/ros2_ws
 RUN python3 -m venv .venv
 RUN set -a && . .venv/bin/activate && pip install /setup/g1_crc_module
 
-
 RUN echo 'source $HOME/ros2_ws/setup.sh' >> /home/$USERNAME/.bashrc
 
 CMD ["bash"]
