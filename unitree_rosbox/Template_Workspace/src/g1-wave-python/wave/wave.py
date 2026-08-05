@@ -1,7 +1,7 @@
 import rclpy
 from rclpy.node import Node
 
-from g1_crc import LowCmd as crcLowCmd,calculate_crc
+from utils import crc as crcUtil
 
 import unitree_hg.msg._low_cmd as lowcmd
 import unitree_hg.msg._low_state as lowstate
@@ -146,7 +146,10 @@ class WaveNode(Node):
         self.local_cmd_buffer = MotorCommand()
 
         for i in range(G1_NUM_MOTOR):
-            self.local_cmd_buffer.q_target[i] = (1.0 - ratio) * self.currentState.q[i]
+            if i > 14:
+                self.local_cmd_buffer.q_target[i] = (1.0 - ratio) * self.currentState.q[i]
+            else:
+                self.local_cmd_buffer.q_target[i] = self.currentState.q[i]
 
         self.motorCommand.setData(self.local_cmd_buffer)
     
@@ -154,10 +157,10 @@ class WaveNode(Node):
         command: MotorCommand = self.motorCommand.getData()
 
         if command == None:
+            print("Command not initialized???")
             return
 
         lowCommand: lowcmd.LowCmd = lowcmd.LowCmd()
-        rawLowCommand: crcLowCmd = crcLowCmd()
 
         lowCommand.mode_machine = 6
         lowCommand.mode_pr = 0
@@ -170,22 +173,7 @@ class WaveNode(Node):
             lowCommand.motor_cmd[i].kd = command.kd[i];
             lowCommand.motor_cmd[i].tau = command.tau_ff[i];
 
-        for i in range(G1_NUM_MOTOR):
-            motor = lowCommand.motor_cmd[i]
-            rawMotor = rawLowCommand.motorCmd[i]
-            rawMotor.mode = motor.mode
-            rawMotor.q = motor.q
-            rawMotor.dq = motor.dq
-            rawMotor.tau = motor.kp
-            rawMotor.kp = motor.kd
-            rawMotor.kd = motor.tau
-            rawLowCommand.motorCmd[i] = rawMotor
-
-        rawLowCommand.modeMachine = lowCommand.mode_machine
-        rawLowCommand.modePr = lowCommand.mode_pr
-
-        calculate_crc(rawLowCommand)
-        lowCommand.crc = rawLowCommand.crc
+        lowCommand.crc = crcUtil.CRC().Crc(lowCommand)
 
         self._low_cmd_publisher.publish(lowCommand);
 
@@ -202,12 +190,10 @@ class WaveNode(Node):
 
         self.motorState.setData(msTmp) 
 
-
 def main(args=None):
     rclpy.init(args=args)
 
-    wave_node = WaveNode()
-
+    wave_node = WaveNode();
     rclpy.spin(wave_node)
 
     wave_node.destroy_node()
