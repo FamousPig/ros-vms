@@ -7,6 +7,9 @@ import unitree_hg.msg._low_cmd as lowcmd
 import unitree_hg.msg._low_state as lowstate
 import unitree_hg.msg._motor_cmd as motorcmd
 
+import math
+from enum import Enum
+
 from threading import Lock
 
 from math import pi
@@ -118,18 +121,21 @@ class WaveNode(Node):
 
     def __init__(self):
         super().__init__('wave_node')
-        timer_period = 0.002
+        self._timer_period = 0.002
         self.low_state_subscriber = self.create_subscription(lowstate.LowState, 'lowstate', self.lowStateHandler, 10)
         self._low_cmd_publisher = self.create_publisher(lowcmd.LowCmd, 'lowcmd', 10)
         self.joint = G1JointIndex.LEFT_SHOULDER_PITCH;
-        self.deltatime = timer_period
+        self.deltatime = self._timer_period
         self.control_time = 0.0
 
-        self.control_timer = self.create_timer(timer_period, self.control)
-        self.write_timer = self.create_timer(timer_period, self.writeLowCmd)
+        self.control_timer = self.create_timer(self._timer_period, self.control)
+        self.write_timer = self.create_timer(self._timer_period, self.writeLowCmd)
 
         self.motorState = DataBuffer()
         self.motorCommand = DataBuffer()
+
+        self.control_step = 0
+        self.__traj = None
 
     def control(self):
         self.control_time += self.deltatime
@@ -138,20 +144,114 @@ class WaveNode(Node):
         if self.currentState == None:
             return
 
-        default_pose_time = 6.0
-        ratio = self.control_time / default_pose_time
-        if ratio > 1: ratio = 1
+        default_pose_time = 2.0
+        raise_arm_time = 1.0
+        hold_time=1.0
+        wave_step_time=0.69
+        lower_arm_time = 1.0
 
-        self.local_cmd_buffer = MotorCommand()
+        final_pitch = -(89 * PI / 180.0); # conversion degree -> radian
+        final_roll = (90 * PI / 180.0);
 
-        for i in range(G1_NUM_MOTOR):
-            if i > 14:
-                self.local_cmd_buffer.q_target[i] = (1.0 - ratio) * self.currentState.q[i]
-            else:
-                self.local_cmd_buffer.q_target[i] = self.currentState.q[i]
+        match self.control_step:
+            case 0:
+                ratio = self.control_time / default_pose_time
+                if ratio > 1: ratio = 1
+
+                self.local_cmd_buffer = MotorCommand()
+
+                for i in range(G1_NUM_MOTOR):
+                    if i > 14:
+                        self.local_cmd_buffer.q_target[i] = (1.0 - ratio) * self.currentState.q[i]
+                    else:
+                        self.local_cmd_buffer.q_target[i] = self.currentState.q[i]
+
+                if self.control_time >= default_pose_time:
+                    self.control_step = 1
+                    self.stepStartTime = self.control_time;
+            case 1:
+
+                t = self.control_time - self.stepStartTime
+                self.local_cmd_buffer.q_target[G1JointIndex.LEFT_SHOULDER_PITCH.value] = final_pitch * math.sin(PI * (t / raise_arm_time) / 2)
+                self.local_cmd_buffer.kp[G1JointIndex.LEFT_SHOULDER_PITCH.value] = 40.0
+                self.local_cmd_buffer.kd[G1JointIndex.LEFT_SHOULDER_PITCH.value] = 1.5
+
+                self.local_cmd_buffer.q_target[G1JointIndex.LEFT_WRIST_ROLL.value] = final_roll * math.sin(PI * (t / raise_arm_time) / 2)
+                self.local_cmd_buffer.kp[G1JointIndex.LEFT_WRIST_ROLL.value] = 40.0
+                self.local_cmd_buffer.kd[G1JointIndex.LEFT_WRIST_ROLL.value] = 1.5
+
+                if self.control_time >= self.stepStartTime + raise_arm_time:
+                    self.control_step = 2
+                    self.stepStartTime = self.control_time;
+            case 2:
+                self.local_cmd_buffer.q_target[G1JointIndex.LEFT_SHOULDER_PITCH.value] = final_pitch
+                self.local_cmd_buffer.kp[G1JointIndex.LEFT_SHOULDER_PITCH.value] = 40.0
+                self.local_cmd_buffer.kd[G1JointIndex.LEFT_SHOULDER_PITCH.value] = 1.5
+
+                self.local_cmd_buffer.q_target[G1JointIndex.LEFT_WRIST_ROLL.value] = final_roll
+                self.local_cmd_buffer.kp[G1JointIndex.LEFT_WRIST_ROLL.value] = 40.0
+                self.local_cmd_buffer.kd[G1JointIndex.LEFT_WRIST_ROLL.value] = 1.5
+
+                if self.control_time >= self.stepStartTime + hold_time:
+                    self.control_step = 3
+                    self.stepStartTime = self.control_time;
+            case 3:
+                self._waveLeft(wave_step_time)
+
+                if self.control_time >= self.stepStartTime + wave_step_time:
+                    self.control_step += 1
+                    self.stepStartTime = self.control_time;
+                    self.__traj = None
+            case 4:
+                self._waveRight(wave_step_time)
+
+                if self.control_time >= self.stepStartTime + wave_step_time:
+                    self.control_step += 1
+                    self.stepStartTime = self.control_time;
+                    self.__traj = None
+            case 5:
+                self._waveLeft(wave_step_time)
+
+                if self.control_time >= self.stepStartTime + wave_step_time:
+                    self.control_step += 1
+                    self.stepStartTime = self.control_time;
+                    self.__traj = None
+            case 6:
+                self._waveRight(wave_step_time)
+
+                if self.control_time >= self.stepStartTime + wave_step_time:
+                    self.control_step += 1
+                    self.stepStartTime = self.control_time;
+                    self.__traj = None
+            case 7:
+                t = self.control_time - self.stepStartTime
+                ratio = t / lower_arm_time
+                if ratio > 1: ratio = 1
+
+                self.local_cmd_buffer = MotorCommand()
+
+                for i in range(G1_NUM_MOTOR):
+                    if i > 14:
+                        self.local_cmd_buffer.q_target[i] = (1.0 - ratio) * self.currentState.q[i]
+                    else:
+                        self.local_cmd_buffer.q_target[i] = self.currentState.q[i]
 
         self.motorCommand.setData(self.local_cmd_buffer)
-    
+            
+    def _wave(self, angle: float, duration: float):
+        if self.__traj == None:
+            self.__traj = CubicJointTrajectory(self.currentState.q[G1JointIndex.LEFT_SHOULDER_YAW.value], angle, duration)
+
+        self.local_cmd_buffer.q_target[G1JointIndex.LEFT_SHOULDER_YAW.value] = self.__traj.angleAt(self.control_time - self.stepStartTime)
+        self.local_cmd_buffer.kp[G1JointIndex.LEFT_SHOULDER_YAW.value] = 40.0
+        self.local_cmd_buffer.kd[G1JointIndex.LEFT_SHOULDER_YAW.value] = 1.5
+
+    def _waveLeft(self, duration: float):
+        self._wave(30.0 * PI / 180.0, duration)
+
+    def _waveRight(self, duration: float):
+        self._wave(-30.0 * PI / 180.0, duration)
+
     def writeLowCmd(self):
         command: MotorCommand = self.motorCommand.getData()
 
