@@ -7,8 +7,7 @@
                 "/opt/ros/humble/include/**",
                 "/usr/include/**",
                 "/opt/unitree_robotics/include/**",
-                "/opt/unitree_ros2/install/**",
-                "${workspaceFolder}/install/g1_lowcmd_crc_interface/include/g1_lowcmd_crc_interface"
+                "/opt/unitree_ros2/install/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
